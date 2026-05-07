@@ -4,3 +4,9 @@ sqlalchemy[asyncio]
 alembic
 psycopg2-binary
 pydantic-settings
+passlib[bcrypt]
+PyJWT
+python-multipart
+pytest
+httpx
+bcrypt<4.0.0
