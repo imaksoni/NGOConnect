@@ -14,7 +14,7 @@ This monorepo is divided into two primary parts:
 Please refer to the READMEs in the respective directories for specific instructions on how to set up, run, and test the frontend and backend.
 
 - [Flutter App README](./flutter_app/README.md) (coming soon)
-- [Backend README](./backend/README.md) (coming soon)
+- [Backend README](./backend/README.md)
 
 ## Contributing
 
