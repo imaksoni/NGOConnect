@@ -44,3 +44,24 @@ alembic upgrade head
 ```bash
 curl http://localhost:8000/health
 ```
+
+## Authentication
+
+The backend uses JWT (JSON Web Tokens) for authentication.
+
+### Endpoints
+* `POST /auth/register`: Register a new user with an email, password, and optional full name.
+* `POST /auth/login`: Authenticate with an email and password to receive an access token and refresh token.
+* `POST /auth/refresh`: Submit a valid refresh token in the body `{"refresh_token": "..."}` to receive a new pair of access and refresh tokens.
+* `GET /auth/me`: A protected endpoint that returns the currently authenticated user's details. Requires a valid access token in the `Authorization` header (`Bearer <token>`).
+
+### Security Note
+For the MVP, a stateless refresh token strategy is implemented. It relies on the JWT secret and expiration time.
+
+### Running Tests
+
+To run the authentication tests, execute:
+```bash
+pytest app/tests/test_auth.py
+```
+This requires `pytest` and `httpx` to be installed (included in `requirements.txt`).
