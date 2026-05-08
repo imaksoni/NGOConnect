@@ -30,11 +30,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void _onRegister() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await ref.read(authProvider.notifier).register(
+        await ref
+            .read(authProvider.notifier)
+            .register(
               _emailController.text.trim(),
               _passwordController.text,
-              firstName: _firstNameController.text.trim().isEmpty ? null : _firstNameController.text.trim(),
-              lastName: _lastNameController.text.trim().isEmpty ? null : _lastNameController.text.trim(),
+              firstName: _firstNameController.text.trim().isEmpty
+                  ? null
+                  : _firstNameController.text.trim(),
+              lastName: _lastNameController.text.trim().isEmpty
+                  ? null
+                  : _lastNameController.text.trim(),
             );
         if (mounted) {
           context.goNamed(RouteConstants.homeName);
@@ -42,9 +48,34 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registration failed: ${e.toString().replaceAll('Exception: ', '')}')),
+            SnackBar(
+              content: Text(
+                'Registration failed: ${e.toString().replaceAll('Exception: ', '')}',
+              ),
+            ),
           );
         }
+      }
+    }
+  }
+
+  void _onGoogleSignIn() async {
+    try {
+      await ref.read(authProvider.notifier).signInWithGoogle();
+      if (mounted &&
+          ref.read(authProvider).hasValue &&
+          ref.read(authProvider).value != null) {
+        context.goNamed(RouteConstants.homeName);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Google Sign-In failed: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+          ),
+        );
       }
     }
   }
@@ -133,6 +164,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Register'),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: isLoading ? null : _onGoogleSignIn,
+                  icon: const Icon(Icons.g_mobiledata, size: 24),
+                  label: const Text('Sign in with Google'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
               ],
             ),

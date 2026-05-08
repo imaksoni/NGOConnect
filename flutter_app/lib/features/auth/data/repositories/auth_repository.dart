@@ -11,8 +11,8 @@ class AuthRepository {
   AuthRepository({
     required ApiClient apiClient,
     required TokenRepository tokenRepository,
-  })  : _apiClient = apiClient,
-        _tokenRepository = tokenRepository;
+  }) : _apiClient = apiClient,
+       _tokenRepository = tokenRepository;
 
   Future<UserModel> register({
     required String email,
@@ -36,17 +36,28 @@ class AuthRepository {
     }
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> loginWithGoogle({required String idToken}) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/auth/google',
+        data: {'id_token': idToken},
+      );
+
+      final token = TokenModel.fromJson(response.data);
+      await _tokenRepository.saveTokens(
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<void> login({required String email, required String password}) async {
     try {
       final response = await _apiClient.dio.post(
         '/auth/login',
-        data: FormData.fromMap({
-          'username': email,
-          'password': password,
-        }),
+        data: FormData.fromMap({'username': email, 'password': password}),
       );
 
       final token = TokenModel.fromJson(response.data);
@@ -68,9 +79,7 @@ class AuthRepository {
 
       final response = await _apiClient.dio.post(
         '/auth/refresh',
-        data: {
-          'refresh_token': refreshToken,
-        },
+        data: {'refresh_token': refreshToken},
       );
 
       final token = TokenModel.fromJson(response.data);
@@ -104,7 +113,7 @@ class AuthRepository {
       if (detail != null && detail is String) {
         return Exception(detail);
       } else if (detail != null && detail is List && detail.isNotEmpty) {
-         return Exception(detail[0]['msg'] ?? 'Validation error');
+        return Exception(detail[0]['msg'] ?? 'Validation error');
       }
     }
     return Exception(e.message ?? 'An unknown error occurred');
