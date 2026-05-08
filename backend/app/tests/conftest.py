@@ -48,3 +48,25 @@ def client(db):
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
     del app.dependency_overrides[get_db]
+
+@pytest.fixture
+def normal_user_token_headers(client: TestClient, db):
+    import uuid
+    from app.models.user import User
+
+    email = f"test_{uuid.uuid4()}@example.com"
+    # Register a new user
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": "password123", "full_name": "Test User"}
+    )
+    # Login to get token (using form data, as per standard OAuth2 login endpoint)
+    login_response = client.post(
+        "/auth/login",
+        data={"username": email, "password": "password123"}
+    )
+    tokens = login_response.json()
+    if "access_token" not in tokens:
+        print("Login failed, response:", tokens)
+    a_token = tokens["access_token"]
+    return {"Authorization": f"Bearer {a_token}"}
