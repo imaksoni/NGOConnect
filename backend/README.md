@@ -51,6 +51,11 @@ The backend uses JWT (JSON Web Tokens) for authentication.
 
 ### Endpoints
 * `POST /auth/register`: Register a new user with an email, password, and optional full name.
+* `POST /ngos`: Create a new NGO.
+* `GET /ngos/discover`: List discoverable NGOs (public and verified).
+* `GET /ngos/slug/{slug}`: Get NGO by slug.
+* `PUT /ngos/{ngo_id}`: Update NGO.
+* `POST /ngos/{ngo_id}/verify`: Submit an NGO for verification.
 * `POST /auth/login`: Authenticate with an email and password to receive an access token and refresh token.
 * `POST /auth/refresh`: Submit a valid refresh token in the body `{"refresh_token": "..."}` to receive a new pair of access and refresh tokens.
 * `POST /auth/google`: Login or register a user via Google Sign-In. Accepts `{"id_token": "..."}` where `id_token` is the Google identity token from the client.
