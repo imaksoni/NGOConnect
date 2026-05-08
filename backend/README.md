@@ -53,7 +53,26 @@ The backend uses JWT (JSON Web Tokens) for authentication.
 * `POST /auth/register`: Register a new user with an email, password, and optional full name.
 * `POST /auth/login`: Authenticate with an email and password to receive an access token and refresh token.
 * `POST /auth/refresh`: Submit a valid refresh token in the body `{"refresh_token": "..."}` to receive a new pair of access and refresh tokens.
+* `POST /auth/google`: Login or register a user via Google Sign-In. Accepts `{"id_token": "..."}` where `id_token` is the Google identity token from the client.
 * `GET /auth/me`: A protected endpoint that returns the currently authenticated user's details. Requires a valid access token in the `Authorization` header (`Bearer <token>`).
+
+### Google Sign-In Support
+
+Google Sign-In allows users to authenticate using their Google accounts. The flow works as follows:
+1. The client (e.g. Flutter app) authenticates the user with Google and receives a Google `id_token`.
+2. The client sends a `POST` request to `/auth/google` with a JSON payload: `{"id_token": "..."}`.
+3. The backend uses Google's public keys to verify the token server-side.
+4. If valid, the backend extracts the user's `email`, `sub` (Google's unique user ID), and `name`.
+5. The backend looks up the user by email. If the user does not exist, a new user is created.
+6. The user is linked to the Google provider in the `auth_providers` table.
+7. The backend returns its own JWT access and refresh tokens.
+
+#### Required Environment Variable
+For Google Sign-In verification to work securely in production, ensure that the `.env` file specifies the client ID assigned by Google:
+
+```dotenv
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+```
 
 ### Security Note
 For the MVP, a stateless refresh token strategy is implemented. It relies on the JWT secret and expiration time.
