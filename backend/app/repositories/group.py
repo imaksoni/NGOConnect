@@ -1,6 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.models.group import Group, GroupMember, GroupRole
+from datetime import datetime
+from app.models.group import Group, GroupMember, GroupRole, GroupJoinRequest, JoinRequestStatus
 from app.schemas.group import GroupCreate, GroupUpdate
 import uuid
 
@@ -41,6 +42,45 @@ class GroupRepository:
         db.refresh(db_obj)
         return db_obj
 
+class GroupJoinRequestRepository:
+    def get(self, db: Session, id: str) -> Optional[GroupJoinRequest]:
+        return db.query(GroupJoinRequest).filter(GroupJoinRequest.id == id).first()
+
+    def get_by_user_and_group(self, db: Session, user_id: str, group_id: str) -> Optional[GroupJoinRequest]:
+        return db.query(GroupJoinRequest).filter(
+            GroupJoinRequest.user_id == user_id,
+            GroupJoinRequest.group_id == group_id
+        ).order_by(GroupJoinRequest.requested_at.desc()).first()
+
+    def get_all_for_group(self, db: Session, group_id: str, status: Optional[str] = None) -> List[GroupJoinRequest]:
+        query = db.query(GroupJoinRequest).filter(GroupJoinRequest.group_id == group_id)
+        if status:
+            query = query.filter(GroupJoinRequest.status == status)
+        return query.all()
+
+    def create(self, db: Session, user_id: str, group_id: str) -> GroupJoinRequest:
+        db_obj = GroupJoinRequest(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            group_id=group_id,
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    def update(self, db: Session, db_obj: GroupJoinRequest, status: JoinRequestStatus, reviewer_id: str, admin_comment: Optional[str] = None) -> GroupJoinRequest:
+        db_obj.status = status
+        db_obj.reviewed_by = reviewer_id
+        db_obj.reviewed_at = datetime.utcnow()
+        if admin_comment is not None:
+            db_obj.admin_comment = admin_comment
+
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
 class GroupMemberRepository:
     def get(self, db: Session, user_id: str, group_id: str) -> Optional[GroupMember]:
         return db.query(GroupMember).filter(GroupMember.user_id == user_id, GroupMember.group_id == group_id).first()
@@ -76,3 +116,4 @@ class GroupRoleRepository:
 group_repo = GroupRepository()
 group_member_repo = GroupMemberRepository()
 group_role_repo = GroupRoleRepository()
+group_join_request_repo = GroupJoinRequestRepository()

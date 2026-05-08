@@ -21,6 +21,8 @@ class RouteConstants {
   static const String groupListName = 'groupList';
   static const String groupDetailPath = '/groups/:groupId';
   static const String groupDetailName = 'groupDetail';
+  static const String joinRequestsPath = '/groups/:groupId/join-requests';
+  static const String joinRequestsName = 'joinRequests';
 
   static const String channelListPath = '/groups/:groupId/channels';
   static const String channelListName = 'channelList';

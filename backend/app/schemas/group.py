@@ -29,6 +29,31 @@ class Group(GroupBase):
         orm_mode = True
         from_attributes = True
 
+class GroupJoinRequestBase(BaseModel):
+    pass
+
+class GroupJoinRequestCreate(GroupJoinRequestBase):
+    pass
+
+class GroupJoinRequestReview(BaseModel):
+    admin_comment: Optional[str] = None
+
+class GroupJoinRequest(GroupJoinRequestBase):
+    id: str
+    group_id: str
+    user_id: str
+    status: str
+    requested_at: datetime
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[str] = None
+    admin_comment: Optional[str] = None
+
+    user: User
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
 class GroupRoleBase(BaseModel):
     name: str
     description: Optional[str] = None
