@@ -10,4 +10,7 @@ class RouteConstants {
 
   static const String registerPath = '/register';
   static const String registerName = 'register';
+
+  static const String homePath = '/home';
+  static const String homeName = 'home';
 }
