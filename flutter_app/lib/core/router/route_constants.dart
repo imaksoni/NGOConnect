@@ -13,4 +13,7 @@ class RouteConstants {
 
   static const String homePath = '/home';
   static const String homeName = 'home';
+
+  static const String ngoDetailPath = '/ngo/:slug';
+  static const String ngoDetailName = 'ngo_detail';
 }
