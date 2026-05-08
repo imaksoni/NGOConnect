@@ -2,12 +2,14 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 
 from app.api.deps import get_db, get_current_user
-from app.schemas.group import Group, GroupCreate, GroupUpdate, GroupMember
-from app.services.group import group_service, group_member_service, group_role_service
+from app.schemas.group import Group, GroupCreate, GroupUpdate, GroupMember, GroupJoinRequest, GroupJoinRequestReview
+from app.services.group import group_service, group_member_service, group_role_service, group_join_request_service
 from app.services.ngo import ngo_service
 from app.services.ngo_member import ngo_member_service
+from app.repositories.group import group_join_request_repo
 from app.models.user import User
 
 router = APIRouter(tags=["Groups"])
@@ -95,6 +97,18 @@ def update_group(
 
     return group_service.update_group(db, db_obj=group, obj_in=group_in)
 
+@router.get("/groups/{group_id}/members/me", response_model=Optional[GroupMember])
+def get_my_group_member(
+    group_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = group_service.get_group(db, group_id)
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    return group_member_service.get_member(db, current_user.id, group_id)
+
 @router.get("/groups/{group_id}/members", response_model=List[GroupMember])
 def list_group_members(
     group_id: str,
@@ -172,3 +186,96 @@ def remove_role(
     # Prevent self-removal if only group admin? Let's just allow removal for now
     group_member_service.remove_member(db, request.user_id, group_id)
     return
+
+@router.get("/groups/{group_id}/join-request/me", response_model=Optional[GroupJoinRequest])
+def get_my_join_request(
+    group_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = group_service.get_group(db, group_id)
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    return group_join_request_repo.get_by_user_and_group(db, current_user.id, group_id)
+
+@router.post("/groups/{group_id}/join-request", response_model=GroupJoinRequest, status_code=status.HTTP_201_CREATED)
+def create_join_request(
+    group_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = group_service.get_group(db, group_id)
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    # If invite_only, you might want to prevent join requests if it's strictly invite only
+    # But product rule: "For invite_only groups, direct join requests may still be allowed"
+    return group_join_request_service.create_request(db, current_user.id, group_id)
+
+@router.get("/groups/{group_id}/join-requests", response_model=List[GroupJoinRequest])
+def list_join_requests(
+    group_id: str,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = group_service.get_group(db, group_id)
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    current_group_member = group_member_service.get_member(db, current_user.id, group_id)
+    is_group_admin = current_group_member and current_group_member.role.name == "group_admin"
+    ngo_member = ngo_member_service.get_member(db, current_user.id, group.ngo_id)
+    is_ngo_admin = ngo_member and ngo_member.role.name in ["owner", "admin"]
+
+    if not is_group_admin and not is_ngo_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to view join requests")
+
+    return group_join_request_service.get_requests_for_group(db, group_id, status)
+
+@router.post("/join-requests/{request_id}/approve", response_model=GroupJoinRequest)
+def approve_join_request(
+    request_id: str,
+    review: GroupJoinRequestReview,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    join_request = group_join_request_repo.get(db, request_id)
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Join request not found")
+
+    group = group_service.get_group(db, join_request.group_id)
+
+    current_group_member = group_member_service.get_member(db, current_user.id, group.id)
+    is_group_admin = current_group_member and current_group_member.role.name == "group_admin"
+    ngo_member = ngo_member_service.get_member(db, current_user.id, group.ngo_id)
+    is_ngo_admin = ngo_member and ngo_member.role.name in ["owner", "admin"]
+
+    if not is_group_admin and not is_ngo_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to approve join requests")
+
+    return group_join_request_service.approve_request(db, request_id, current_user.id, review.admin_comment)
+
+@router.post("/join-requests/{request_id}/reject", response_model=GroupJoinRequest)
+def reject_join_request(
+    request_id: str,
+    review: GroupJoinRequestReview,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    join_request = group_join_request_repo.get(db, request_id)
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Join request not found")
+
+    group = group_service.get_group(db, join_request.group_id)
+
+    current_group_member = group_member_service.get_member(db, current_user.id, group.id)
+    is_group_admin = current_group_member and current_group_member.role.name == "group_admin"
+    ngo_member = ngo_member_service.get_member(db, current_user.id, group.ngo_id)
+    is_ngo_admin = ngo_member and ngo_member.role.name in ["owner", "admin"]
+
+    if not is_group_admin and not is_ngo_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to reject join requests")
+
+    return group_join_request_service.reject_request(db, request_id, current_user.id, review.admin_comment)

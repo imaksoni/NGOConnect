@@ -49,3 +49,61 @@ class GroupModel {
     };
   }
 }
+
+class GroupJoinRequestModel {
+  final String id;
+  final String groupId;
+  final String userId;
+  final String status;
+  final DateTime requestedAt;
+  final String? adminComment;
+  final Map<String, dynamic>? user;
+
+  GroupJoinRequestModel({
+    required this.id,
+    required this.groupId,
+    required this.userId,
+    required this.status,
+    required this.requestedAt,
+    this.adminComment,
+    this.user,
+  });
+
+  factory GroupJoinRequestModel.fromJson(Map<String, dynamic> json) {
+    return GroupJoinRequestModel(
+      id: json['id'],
+      groupId: json['group_id'],
+      userId: json['user_id'],
+      status: json['status'],
+      requestedAt: DateTime.parse(json['requested_at']),
+      adminComment: json['admin_comment'],
+      user: json['user'],
+    );
+  }
+}
+
+class GroupMemberModel {
+  final String userId;
+  final String groupId;
+  final String roleId;
+  final String status;
+  final Map<String, dynamic>? role;
+
+  GroupMemberModel({
+    required this.userId,
+    required this.groupId,
+    required this.roleId,
+    required this.status,
+    this.role,
+  });
+
+  factory GroupMemberModel.fromJson(Map<String, dynamic> json) {
+    return GroupMemberModel(
+      userId: json['user_id'],
+      groupId: json['group_id'],
+      roleId: json['role_id'],
+      status: json['status'],
+      role: json['role'],
+    );
+  }
+}

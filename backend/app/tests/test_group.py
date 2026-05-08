@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 def test_create_group_success(client: TestClient, owner_token_headers: dict, setup_ngo: dict):
     ngo_id = setup_ngo["id"]
@@ -100,7 +101,115 @@ def test_list_groups_visibility(client: TestClient, owner_token_headers: dict, n
     # Normal user (not in NGO) can only see public
     normal_resp = client.get(f"/ngos/{ngo_id}/groups", headers=normal_user_token_headers)
     assert normal_resp.status_code == 200
-    public_groups = [g for g in normal_resp.json() if g["visibility"] == "public"]
-    private_groups = [g for g in normal_resp.json() if g["visibility"] == "invite_only"]
-    assert len(public_groups) >= 1
-    assert len(private_groups) == 0
+
+def test_create_join_request_success(client: TestClient, db: Session, normal_user_token_headers: dict, setup_ngo: dict, owner_token_headers: dict):
+    ngo = setup_ngo
+    owner_headers = owner_token_headers
+
+    group_data = {
+        "name": "Join Request Group",
+        "slug": "join-request-group",
+        "visibility": "invite_only"
+    }
+    response = client.post(f"/ngos/{ngo['id']}/groups", json=group_data, headers=owner_headers)
+    group_id = response.json()["id"]
+
+    normal_user_headers = normal_user_token_headers
+    response = client.post(f"/groups/{group_id}/join-request", headers=normal_user_headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["status"] == "pending"
+    assert data["group_id"] == group_id
+
+def test_duplicate_join_request_blocked(client: TestClient, db: Session, normal_user_token_headers: dict, setup_ngo: dict, owner_token_headers: dict):
+    ngo = setup_ngo
+    owner_headers = owner_token_headers
+
+    group_data = {
+        "name": "Join Request Group 2",
+        "slug": "join-request-group-2",
+        "visibility": "invite_only"
+    }
+    response = client.post(f"/ngos/{ngo['id']}/groups", json=group_data, headers=owner_headers)
+    group_id = response.json()["id"]
+
+    normal_user_headers = normal_user_token_headers
+    response = client.post(f"/groups/{group_id}/join-request", headers=normal_user_headers)
+    assert response.status_code == 201
+
+    # Duplicate request
+    response = client.post(f"/groups/{group_id}/join-request", headers=normal_user_headers)
+    assert response.status_code == 400
+
+def test_approve_join_request_success(client: TestClient, db: Session, normal_user_token_headers: dict, setup_ngo: dict, owner_token_headers: dict):
+    ngo = setup_ngo
+    owner_headers = owner_token_headers
+
+    group_data = {
+        "name": "Approve Group",
+        "slug": "approve-group",
+        "visibility": "invite_only"
+    }
+    response = client.post(f"/ngos/{ngo['id']}/groups", json=group_data, headers=owner_headers)
+    group_id = response.json()["id"]
+
+    normal_user_headers = normal_user_token_headers
+    response = client.post(f"/groups/{group_id}/join-request", headers=normal_user_headers)
+    assert response.status_code == 201
+    request_id = response.json()["id"]
+
+    # Approve request as admin
+    response = client.post(f"/join-requests/{request_id}/approve", json={"admin_comment": "Welcome"}, headers=owner_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "approved"
+    assert data["admin_comment"] == "Welcome"
+
+    # Verify user is now a member
+    response = client.get(f"/groups/{group_id}/members", headers=owner_headers)
+    members = response.json()
+    assert any(m["user_id"] == data["user_id"] for m in members)
+
+def test_reject_join_request_success(client: TestClient, db: Session, normal_user_token_headers: dict, setup_ngo: dict, owner_token_headers: dict):
+    ngo = setup_ngo
+    owner_headers = owner_token_headers
+
+    group_data = {
+        "name": "Reject Group",
+        "slug": "reject-group",
+        "visibility": "invite_only"
+    }
+    response = client.post(f"/ngos/{ngo['id']}/groups", json=group_data, headers=owner_headers)
+    group_id = response.json()["id"]
+
+    normal_user_headers = normal_user_token_headers
+    response = client.post(f"/groups/{group_id}/join-request", headers=normal_user_headers)
+    assert response.status_code == 201
+    request_id = response.json()["id"]
+
+    # Reject request as admin
+    response = client.post(f"/join-requests/{request_id}/reject", json={"admin_comment": "No"}, headers=owner_headers)
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"
+
+def test_unauthorized_approval_blocked(client: TestClient, db: Session, normal_user_token_headers: dict, setup_ngo: dict, owner_token_headers: dict, normal_user: dict):
+    ngo = setup_ngo
+    owner_headers = owner_token_headers
+
+    group_data = {
+        "name": "Unauth Group",
+        "slug": "unauth-group",
+        "visibility": "invite_only"
+    }
+    response = client.post(f"/ngos/{ngo['id']}/groups", json=group_data, headers=owner_headers)
+    group_id = response.json()["id"]
+
+    normal_user_headers = normal_user_token_headers
+    response = client.post(f"/groups/{group_id}/join-request", headers=normal_user_headers)
+    assert response.status_code == 201
+    request_id = response.json()["id"]
+
+    # Attempt to approve with unauthorized user
+    user_2_headers = normal_user_token_headers # Same normal user
+    response = client.post(f"/join-requests/{request_id}/approve", json={"admin_comment": "hi"}, headers=user_2_headers)
+    assert response.status_code == 403

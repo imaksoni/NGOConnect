@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/group_provider.dart';
+import '../../../groups/presentation/providers/join_request_provider.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   final String groupId;
@@ -32,6 +33,13 @@ class GroupDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(group.about ?? 'No description provided.'),
                 const SizedBox(height: 32),
+                _buildJoinRequestActions(
+                  context,
+                  ref,
+                  group.id,
+                  group.visibility,
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
                     context.push('/groups/${group.id}/channels');
@@ -45,6 +53,74 @@ class GroupDetailScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Error: $error')),
       ),
+    );
+  }
+
+  Widget _buildJoinRequestActions(
+    BuildContext context,
+    WidgetRef ref,
+    String groupId,
+    String visibility,
+  ) {
+    final requestsState = ref.watch(joinRequestsProvider(groupId));
+
+    return requestsState.when(
+      data: (requests) {
+        return ElevatedButton(
+          onPressed: () {
+            context.push('/groups/$groupId/join-requests');
+          },
+          child: const Text('Manage Join Requests'),
+        );
+      },
+      loading: () => const CircularProgressIndicator(),
+      error: (e, st) {
+        final myMemberState = ref.watch(myGroupMemberProvider(groupId));
+        return myMemberState.when(
+          data: (myMember) {
+            if (myMember != null) {
+              return const SizedBox.shrink(); // Already a member
+            }
+
+            final myRequestState = ref.watch(myJoinRequestProvider(groupId));
+            return myRequestState.when(
+              data: (myRequest) {
+                if (myRequest != null && myRequest.status == 'pending') {
+                  return const Text(
+                    'Request Pending',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                } else {
+                  final notifierState = ref.watch(joinRequestNotifierProvider);
+                  return ElevatedButton(
+                    onPressed: notifierState.isLoading
+                        ? null
+                        : () {
+                            ref
+                                .read(joinRequestNotifierProvider.notifier)
+                                .requestToJoin(groupId);
+                          },
+                    child: notifierState.isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(),
+                          )
+                        : const Text('Request to Join'),
+                  );
+                }
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (e, st) => const SizedBox.shrink(),
+            );
+          },
+          loading: () => const CircularProgressIndicator(),
+          error: (e, st) => const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

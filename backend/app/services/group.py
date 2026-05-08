@@ -1,8 +1,8 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.models.group import Group, GroupMember, GroupRole
+from app.models.group import Group, GroupMember, GroupRole, GroupJoinRequest, JoinRequestStatus
 from app.schemas.group import GroupCreate, GroupUpdate
-from app.repositories.group import group_repo, group_role_repo, group_member_repo
+from app.repositories.group import group_repo, group_role_repo, group_member_repo, group_join_request_repo
 from fastapi import HTTPException
 
 class GroupRoleService:
@@ -75,3 +75,78 @@ class GroupService:
         return group_repo.update(db, db_obj, obj_in)
 
 group_service = GroupService()
+
+class GroupJoinRequestService:
+    def create_request(self, db: Session, user_id: str, group_id: str) -> GroupJoinRequest:
+        group = group_repo.get(db, group_id)
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
+
+        # Check if already a member
+        member = group_member_service.get_member(db, user_id, group_id)
+        if member:
+            raise HTTPException(status_code=400, detail="User is already a member of this group")
+
+        # Check if a pending request already exists
+        existing_request = group_join_request_repo.get_by_user_and_group(db, user_id, group_id)
+        if existing_request and existing_request.status == JoinRequestStatus.pending:
+            raise HTTPException(status_code=400, detail="A pending join request already exists")
+
+        # Note: Depending on rules, you might allow re-requesting if rejected, or disallow it. We'll allow if not pending.
+
+        return group_join_request_repo.create(db, user_id=user_id, group_id=group_id)
+
+    def get_requests_for_group(self, db: Session, group_id: str, status: Optional[str] = None) -> List[GroupJoinRequest]:
+        return group_join_request_repo.get_all_for_group(db, group_id, status)
+
+    def approve_request(self, db: Session, request_id: str, reviewer_id: str, admin_comment: Optional[str] = None) -> GroupJoinRequest:
+        from datetime import datetime
+        # Use with_for_update() to prevent race conditions during approval
+        db_obj = db.query(GroupJoinRequest).filter(GroupJoinRequest.id == request_id).with_for_update().first()
+        if not db_obj:
+            raise HTTPException(status_code=404, detail="Join request not found")
+
+        if db_obj.status != JoinRequestStatus.pending:
+            raise HTTPException(status_code=400, detail=f"Cannot approve a request with status: {db_obj.status}")
+
+        db_obj.status = JoinRequestStatus.approved
+        db_obj.reviewed_by = reviewer_id
+        db_obj.reviewed_at = datetime.utcnow()
+        if admin_comment is not None:
+            db_obj.admin_comment = admin_comment
+
+        db.add(db_obj)
+
+        group_role_service.ensure_default_roles(db)
+        role = group_role_service.get_role_by_name(db, "member")
+        if not role:
+            raise HTTPException(status_code=500, detail="Role not found")
+
+        # Grant membership.
+        # Note on Channel Access: Public channel access is implicitly derived
+        # from group membership. When a user becomes a GroupMember here, they
+        # automatically gain access to view all public channels within this group
+        # (as enforced by channel view logic checking group membership).
+        existing_member = db.query(GroupMember).filter(GroupMember.user_id == db_obj.user_id, GroupMember.group_id == db_obj.group_id).first()
+        if not existing_member:
+            member = GroupMember(user_id=db_obj.user_id, group_id=db_obj.group_id, role_id=role.id, status="active")
+            db.add(member)
+
+        db.commit()
+        db.refresh(db_obj)
+
+        return db_obj
+
+    def reject_request(self, db: Session, request_id: str, reviewer_id: str, admin_comment: Optional[str] = None) -> GroupJoinRequest:
+        db_obj = db.query(GroupJoinRequest).filter(GroupJoinRequest.id == request_id).with_for_update().first()
+        if not db_obj:
+            raise HTTPException(status_code=404, detail="Join request not found")
+
+        if db_obj.status != JoinRequestStatus.pending:
+            raise HTTPException(status_code=400, detail=f"Cannot reject a request with status: {db_obj.status}")
+
+        return group_join_request_repo.update(
+            db, db_obj=db_obj, status=JoinRequestStatus.rejected, reviewer_id=reviewer_id, admin_comment=admin_comment
+        )
+
+group_join_request_service = GroupJoinRequestService()

@@ -7,6 +7,7 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/ngo/presentation/screens/ngo_detail_screen.dart';
 import '../../features/ngo/presentation/screens/group_list_screen.dart';
 import '../../features/ngo/presentation/screens/group_detail_screen.dart';
+import '../../features/groups/presentation/screens/join_requests_screen.dart';
 import '../../features/channels/presentation/screens/channel_list_screen.dart';
 import '../../features/channels/presentation/screens/channel_detail_screen.dart';
 import 'route_constants.dart';
@@ -61,6 +62,14 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final groupId = state.pathParameters['groupId']!;
         return GroupDetailScreen(groupId: groupId);
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.joinRequestsPath,
+      name: RouteConstants.joinRequestsName,
+      builder: (context, state) {
+        final groupId = state.pathParameters['groupId']!;
+        return JoinRequestsScreen(groupId: groupId);
       },
     ),
     GoRoute(
