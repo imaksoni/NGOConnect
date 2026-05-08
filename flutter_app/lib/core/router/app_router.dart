@@ -3,6 +3,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
 import 'route_constants.dart';
 
 final appRouter = GoRouter(
@@ -27,6 +28,11 @@ final appRouter = GoRouter(
       path: RouteConstants.registerPath,
       name: RouteConstants.registerName,
       builder: (context, state) => const RegisterScreen(),
+    ),
+    GoRoute(
+      path: RouteConstants.homePath,
+      name: RouteConstants.homeName,
+      builder: (context, state) => const HomeScreen(),
     ),
   ],
 );
