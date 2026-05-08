@@ -1,3 +1,3 @@
-from app.api.routers import auth, ngo, group, channel
+from app.api.routers import auth, ngo, group, channel, message
 
-__all__ = ["auth", "ngo", "group", "channel"]
+__all__ = ["auth", "ngo", "group", "channel", "message"]
