@@ -16,4 +16,9 @@ class RouteConstants {
 
   static const String ngoDetailPath = '/ngo/:slug';
   static const String ngoDetailName = 'ngo_detail';
+
+  static const String groupListPath = '/ngo/:ngoId/groups';
+  static const String groupListName = 'groupList';
+  static const String groupDetailPath = '/groups/:groupId';
+  static const String groupDetailName = 'groupDetail';
 }

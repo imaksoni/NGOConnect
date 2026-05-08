@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/route_constants.dart';
 import '../providers/ngo_provider.dart';
 import '../../data/models/ngo_model.dart';
 
@@ -86,6 +88,18 @@ class _NgoDetailContent extends StatelessWidget {
           ),
           const TabBar(tabs: [Tab(text: 'About')]),
           Expanded(child: TabBarView(children: [_buildAboutTab(context)])),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              onPressed: () {
+                context.pushNamed(
+                  RouteConstants.groupListName,
+                  pathParameters: {'ngoId': ngo.id},
+                );
+              },
+              child: const Text('View Groups'),
+            ),
+          ),
         ],
       ),
     );

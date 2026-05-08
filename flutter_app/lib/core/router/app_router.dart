@@ -5,6 +5,8 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/ngo/presentation/screens/ngo_detail_screen.dart';
+import '../../features/ngo/presentation/screens/group_list_screen.dart';
+import '../../features/ngo/presentation/screens/group_detail_screen.dart';
 import 'route_constants.dart';
 
 final appRouter = GoRouter(
@@ -41,6 +43,22 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final slug = state.pathParameters['slug']!;
         return NgoDetailScreen(slug: slug);
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.groupListPath,
+      name: RouteConstants.groupListName,
+      builder: (context, state) {
+        final ngoId = state.pathParameters['ngoId']!;
+        return GroupListScreen(ngoId: ngoId);
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.groupDetailPath,
+      name: RouteConstants.groupDetailName,
+      builder: (context, state) {
+        final groupId = state.pathParameters['groupId']!;
+        return GroupDetailScreen(groupId: groupId);
       },
     ),
   ],
