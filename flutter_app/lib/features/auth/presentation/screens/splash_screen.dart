@@ -12,7 +12,6 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
-
   @override
   Widget build(BuildContext context) {
     ref.listen(authProvider, (previous, next) {

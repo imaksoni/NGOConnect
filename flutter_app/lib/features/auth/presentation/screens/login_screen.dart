@@ -26,19 +26,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _onLogin() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await ref.read(authProvider.notifier).login(
-              _emailController.text.trim(),
-              _passwordController.text,
-            );
+        await ref
+            .read(authProvider.notifier)
+            .login(_emailController.text.trim(), _passwordController.text);
         if (mounted) {
           context.goNamed(RouteConstants.homeName);
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed: ${e.toString().replaceAll('Exception: ', '')}')),
+            SnackBar(
+              content: Text(
+                'Login failed: ${e.toString().replaceAll('Exception: ', '')}',
+              ),
+            ),
           );
         }
+      }
+    }
+  }
+
+  void _onGoogleSignIn() async {
+    try {
+      await ref.read(authProvider.notifier).signInWithGoogle();
+      if (mounted &&
+          ref.read(authProvider).hasValue &&
+          ref.read(authProvider).value != null) {
+        context.goNamed(RouteConstants.homeName);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Google Sign-In failed: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+          ),
+        );
       }
     }
   }
@@ -105,6 +129,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('Login'),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: isLoading ? null : _onGoogleSignIn,
+                icon: const Icon(Icons.g_mobiledata, size: 24),
+                label: const Text('Sign in with Google'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
             ],
           ),

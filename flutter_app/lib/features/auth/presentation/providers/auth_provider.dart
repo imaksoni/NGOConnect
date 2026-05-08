@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../core/network/api_client.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -26,7 +27,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return authRepository;
 });
 
-final authProvider = NotifierProvider<AuthNotifier, AsyncValue<UserModel?>>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AsyncValue<UserModel?>>(
+  AuthNotifier.new,
+);
 
 class AuthNotifier extends Notifier<AsyncValue<UserModel?>> {
   late final AuthRepository _authRepository;
@@ -59,7 +62,40 @@ class AuthNotifier extends Notifier<AsyncValue<UserModel?>> {
     }
   }
 
-  Future<void> register(String email, String password, {String? firstName, String? lastName}) async {
+  Future<void> signInWithGoogle() async {
+    state = const AsyncValue.loading();
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+
+      final googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User cancelled the sign-in flow
+        state = const AsyncValue.data(null);
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw Exception('Failed to get Google ID token');
+      }
+
+      await _authRepository.loginWithGoogle(idToken: idToken);
+      await checkAuthStatus();
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
+
+  Future<void> register(
+    String email,
+    String password, {
+    String? firstName,
+    String? lastName,
+  }) async {
     state = const AsyncValue.loading();
     try {
       await _authRepository.register(

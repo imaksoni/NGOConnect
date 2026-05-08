@@ -50,5 +50,48 @@ lib/
 - **dio**: HTTP client abstraction.
 - **shared_preferences**: Local data storage (e.g., auth tokens).
 
+## Authentication
+
+The app supports Email/Password authentication as well as Google Sign-In, interacting directly with the `NgoConnect` backend.
+
+### End-to-End Google Login Flow
+
+1. The user taps the "Sign in with Google" button on the Login or Register screen.
+2. The app uses the `google_sign_in` package to prompt the device's native Google Sign-In flow.
+3. Upon successful device-side authentication, the app retrieves the Google `id_token`.
+4. The app sends this `id_token` to the backend's `/auth/google` endpoint via a POST request.
+5. The backend verifies the token with Google, extracts the user's information, and links it to an existing or new user account.
+6. The backend returns its own JWT access and refresh tokens.
+7. The Flutter app securely stores these tokens using `flutter_secure_storage` and automatically logs the user in, updating the Riverpod `AuthNotifier` state.
+
+### Required Manual Setup for Google Sign-In
+
+For Google Sign-In to function properly on actual devices, you must perform platform-specific configuration in the Google Cloud Console and within the app's platform folders.
+
+**Android:**
+1. In the Google Cloud Console, create an OAuth 2.0 Client ID for Android.
+2. You will need to provide the package name (e.g., `com.example.ngo_connect`) and the SHA-1 certificate fingerprint of your keystore (either the debug keystore for development or the release keystore for production).
+3. Google Sign-In on Android typically doesn't require extra configuration files in the flutter project if the application ID matches the one configured in Google Cloud Console.
+
+**iOS:**
+1. In the Google Cloud Console, create an OAuth 2.0 Client ID for iOS.
+2. Provide your app's bundle identifier.
+3. Download the provided `GoogleService-Info.plist` (or take note of the `CLIENT_ID` and `REVERSED_CLIENT_ID`).
+4. Update `flutter_app/ios/Runner/Info.plist` by adding the reversed client ID to your URL types:
+   ```xml
+   <key>CFBundleURLTypes</key>
+   <array>
+	<dict>
+		<key>CFBundleTypeRole</key>
+		<string>Editor</string>
+		<key>CFBundleURLSchemes</key>
+		<array>
+			<!-- Replace this value with the REVERSED_CLIENT_ID -->
+			<string>com.googleusercontent.apps.YOUR-CLIENT-ID</string>
+		</array>
+	</dict>
+   </array>
+   ```
+
 ## Notes
-- Currently, the authentication flow (Splash, Welcome, Login, Register) is **scaffolded** mainly for UI and navigation. The business logic connecting to the actual backend API remains to be implemented.
+- The authentication flow (Splash, Welcome, Login, Register) is fully functional and uses Riverpod for state management, `dio` for API calls, and `flutter_secure_storage` for token persistence.
