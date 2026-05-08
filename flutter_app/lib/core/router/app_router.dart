@@ -4,6 +4,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/ngo/presentation/screens/ngo_detail_screen.dart';
 import 'route_constants.dart';
 
 final appRouter = GoRouter(
@@ -33,6 +34,14 @@ final appRouter = GoRouter(
       path: RouteConstants.homePath,
       name: RouteConstants.homeName,
       builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: RouteConstants.ngoDetailPath,
+      name: RouteConstants.ngoDetailName,
+      builder: (context, state) {
+        final slug = state.pathParameters['slug']!;
+        return NgoDetailScreen(slug: slug);
+      },
     ),
   ],
 );
