@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/group_provider.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
@@ -30,6 +31,13 @@ class GroupDetailScreen extends ConsumerWidget {
                 Text('About', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 Text(group.about ?? 'No description provided.'),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () {
+                    context.push('/groups/${group.id}/channels');
+                  },
+                  child: const Text('View Channels'),
+                ),
               ],
             ),
           );

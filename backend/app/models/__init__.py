@@ -5,5 +5,6 @@ from app.models.ngo import Ngo
 from app.models.ngo_role import NgoRole
 from app.models.ngo_member import NgoMember
 from app.models.group import Group, GroupRole, GroupMember
+from app.models.channel import Channel
 
-__all__ = ["Base", "User", "AuthProvider", "Ngo", "NgoRole", "NgoMember", "Group", "GroupRole", "GroupMember"]
+__all__ = ["Base", "User", "AuthProvider", "Ngo", "NgoRole", "NgoMember", "Group", "GroupRole", "GroupMember", "Channel"]
