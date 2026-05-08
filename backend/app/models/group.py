@@ -23,6 +23,7 @@ class Group(Base):
 
     ngo = relationship("Ngo")
     members = relationship("GroupMember", back_populates="group", cascade="all, delete-orphan")
+    channels = relationship("Channel", back_populates="group", cascade="all, delete-orphan")
 
 class GroupRole(Base):
     __tablename__ = "group_roles"
