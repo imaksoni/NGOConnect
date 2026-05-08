@@ -107,3 +107,61 @@ def test_invalid_refresh_token(client: TestClient):
         json={"refresh_token": "invalid_token_string"}
     )
     assert response.status_code == 401
+
+from unittest.mock import patch
+from fastapi import HTTPException
+
+def test_google_login_success_new_user(client: TestClient):
+    with patch("app.api.routers.auth.verify_google_token") as mock_verify:
+        mock_verify.return_value = {
+            "email": "newgoogleuser@example.com",
+            "sub": "google_123456",
+            "name": "Google User"
+        }
+
+        response = client.post(
+            "/auth/google",
+            json={"id_token": "fake_google_token"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "bearer"
+        mock_verify.assert_called_once_with("fake_google_token")
+
+def test_google_login_success_existing_user(client: TestClient):
+    # First create the user
+    client.post(
+        "/auth/register",
+        json={"email": "existinggoogle@example.com", "password": "securepassword", "full_name": "Existing User"}
+    )
+
+    with patch("app.api.routers.auth.verify_google_token") as mock_verify:
+        mock_verify.return_value = {
+            "email": "existinggoogle@example.com",
+            "sub": "google_654321",
+            "name": "Existing Google User"
+        }
+
+        response = client.post(
+            "/auth/google",
+            json={"id_token": "fake_google_token_existing"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "bearer"
+        mock_verify.assert_called_once_with("fake_google_token_existing")
+
+def test_google_login_invalid_token(client: TestClient):
+    with patch("app.api.routers.auth.verify_google_token") as mock_verify:
+        mock_verify.side_effect = HTTPException(status_code=400, detail="Token used too early")
+
+        response = client.post(
+            "/auth/google",
+            json={"id_token": "invalid_token"}
+        )
+        assert response.status_code == 400
+        mock_verify.assert_called_once_with("invalid_token")
