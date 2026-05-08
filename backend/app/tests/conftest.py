@@ -50,23 +50,52 @@ def client(db):
     del app.dependency_overrides[get_db]
 
 @pytest.fixture
-def normal_user_token_headers(client: TestClient, db):
+def normal_user(client: TestClient, db):
     import uuid
-    from app.models.user import User
-
-    email = f"test_{uuid.uuid4()}@example.com"
-    # Register a new user
+    email = f"normal_{uuid.uuid4()}@example.com"
     response = client.post(
         "/auth/register",
-        json={"email": email, "password": "password123", "full_name": "Test User"}
+        json={"email": email, "password": "password123", "full_name": "Normal User"}
     )
-    # Login to get token (using form data, as per standard OAuth2 login endpoint)
+    return response.json()
+
+@pytest.fixture
+def normal_user_token_headers(client: TestClient, db, normal_user):
     login_response = client.post(
         "/auth/login",
-        data={"username": email, "password": "password123"}
+        data={"username": normal_user["email"], "password": "password123"}
     )
     tokens = login_response.json()
-    if "access_token" not in tokens:
-        print("Login failed, response:", tokens)
     a_token = tokens["access_token"]
     return {"Authorization": f"Bearer {a_token}"}
+
+@pytest.fixture
+def owner_user(client: TestClient, db):
+    import uuid
+    email = f"owner_{uuid.uuid4()}@example.com"
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": "password123", "full_name": "Owner User"}
+    )
+    return response.json()
+
+@pytest.fixture
+def owner_token_headers(client: TestClient, db, owner_user):
+    login_response = client.post(
+        "/auth/login",
+        data={"username": owner_user["email"], "password": "password123"}
+    )
+    tokens = login_response.json()
+    a_token = tokens["access_token"]
+    return {"Authorization": f"Bearer {a_token}"}
+
+@pytest.fixture
+def setup_ngo(client: TestClient, db, owner_token_headers):
+    import uuid
+    slug = f"test-ngo-{str(uuid.uuid4())[:8]}"
+    response = client.post(
+        "/ngos",
+        headers=owner_token_headers,
+        json={"name": "Test NGO", "slug": slug, "about": "Testing"}
+    )
+    return response.json()
