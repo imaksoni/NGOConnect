@@ -70,6 +70,14 @@ def normal_user_token_headers(client: TestClient, db, normal_user):
     return {"Authorization": f"Bearer {a_token}"}
 
 @pytest.fixture
+def normal_user_token(client: TestClient, db, normal_user):
+    login_response = client.post(
+        "/auth/login",
+        data={"username": normal_user["email"], "password": "password123"}
+    )
+    return login_response.json()["access_token"]
+
+@pytest.fixture
 def owner_user(client: TestClient, db):
     import uuid
     email = f"owner_{uuid.uuid4()}@example.com"
@@ -99,3 +107,23 @@ def setup_ngo(client: TestClient, db, owner_token_headers):
         json={"name": "Test NGO", "slug": slug, "about": "Testing"}
     )
     return response.json()
+
+@pytest.fixture
+def test_channel(client: TestClient, db, owner_token_headers, setup_ngo, normal_user_token_headers):
+    import uuid
+    # Create group
+    group_slug = f"test-group-{str(uuid.uuid4())[:8]}"
+    group_res = client.post(
+        f"/ngos/{setup_ngo['id']}/groups",
+        headers=owner_token_headers,
+        json={"name": "Test Group", "slug": group_slug, "visibility": "public"}
+    )
+    group = group_res.json()
+
+    # Create channel
+    channel_res = client.post(
+        f"/groups/{group['id']}/channels",
+        headers=owner_token_headers,
+        json={"name": "general", "visibility": "public"}
+    )
+    return channel_res.json()

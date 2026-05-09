@@ -60,4 +60,16 @@ class MessageService:
 
         return message_attachment_repo.create(db, obj_in, message_id, user_id)
 
+    def get_attachment(self, db: Session, attachment_id: str, user_id: str) -> MessageAttachment:
+        attachment = message_attachment_repo.get(db, attachment_id)
+        if not attachment:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
+
+        message = message_repo.get(db, attachment.message_id)
+        if not message:
+             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message for attachment not found")
+
+        self._check_channel_access(db, user_id, message.channel_id)
+        return attachment
+
 message_service = MessageService()

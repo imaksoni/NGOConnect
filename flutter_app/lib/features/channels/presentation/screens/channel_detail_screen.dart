@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:dio/dio.dart';
 import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
 
@@ -35,10 +37,58 @@ class _ChannelDetailScreenState extends ConsumerState<ChannelDetailScreen> {
     }
   }
 
-  void _showAttachmentPlaceholder() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Attachment selected (MVP placeholder)')),
-    );
+  bool _isUploading = false;
+  double _uploadProgress = 0.0;
+
+  Future<void> _pickAndUploadFile() async {
+    try {
+      final result = await FilePicker.pickFiles(type: FileType.any);
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.path == null) {
+        throw Exception("File path not found");
+      }
+
+      setState(() {
+        _isUploading = true;
+        _uploadProgress = 0.0;
+      });
+
+      final repo = ref.read(messageRepositoryProvider);
+      final multipartFile = await MultipartFile.fromFile(
+        file.path!,
+        filename: file.name,
+      );
+
+      final text = _controller.text.trim();
+
+      await repo.uploadAttachment(
+        widget.channelId,
+        multipartFile,
+        content: text,
+        onSendProgress: (count, total) {
+          setState(() {
+            _uploadProgress = count / total;
+          });
+        },
+      );
+
+      _controller.clear();
+      ref.invalidate(messagesProvider(widget.channelId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to upload file: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -82,6 +132,7 @@ class _ChannelDetailScreenState extends ConsumerState<ChannelDetailScreen> {
               error: (error, _) => Center(child: Text('Error: $error')),
             ),
           ),
+          if (_isUploading) LinearProgressIndicator(value: _uploadProgress),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -89,7 +140,7 @@ class _ChannelDetailScreenState extends ConsumerState<ChannelDetailScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.attach_file),
-                    onPressed: _showAttachmentPlaceholder,
+                    onPressed: _isUploading ? null : _pickAndUploadFile,
                   ),
                   Expanded(
                     child: TextField(
@@ -98,12 +149,13 @@ class _ChannelDetailScreenState extends ConsumerState<ChannelDetailScreen> {
                         hintText: 'Type a message...',
                         border: OutlineInputBorder(),
                       ),
-                      onSubmitted: (_) => _sendMessage(),
+                      onSubmitted: _isUploading ? null : (_) => _sendMessage(),
+                      enabled: !_isUploading,
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.send),
-                    onPressed: _sendMessage,
+                    onPressed: _isUploading ? null : _sendMessage,
                   ),
                 ],
               ),
