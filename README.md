@@ -75,6 +75,20 @@ flutter test
 3. **Caching:** Highly accessed read endpoints (`/ngos/discover`) would benefit from Redis caching.
 4. **Offline Mode:** The Flutter app currently relies completely on live network status. Adding local database caching (e.g. Isar or Hive) for messages and events is recommended.
 
+## Storage Architecture
+
+NgoConnect uses a storage adapter pattern to handle file uploads such as message attachments.
+- **Local Adapter:** Saves uploaded files to a local directory (e.g. `uploads/`) and serves files via the backend. Used in development environments.
+- **S3 Adapter:** Uploads files to an AWS S3-compatible bucket and provides presigned URLs for secure downloads. Used in staging/production environments.
+
+To configure the storage behavior, ensure the following environment variables are set for the backend:
+- `STORAGE_BACKEND`: `local` or `s3`
+- `LOCAL_STORAGE_DIR`: Directory path for local uploads (e.g., `uploads`)
+- `MAX_UPLOAD_SIZE_MB`: Max allowed file size in MB.
+- `S3_BUCKET_NAME`, `S3_ENDPOINT_URL`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`: Settings needed for S3 adapter.
+
+For local S3 integration tests, tools like `LocalStack` or `MinIO` are recommended to mock the bucket.
+
 ## Getting Started
 
 Please refer to the READMEs in the respective directories for specific instructions on how to set up, run, and test the frontend and backend.

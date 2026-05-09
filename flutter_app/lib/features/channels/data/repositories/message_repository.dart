@@ -40,6 +40,26 @@ class MessageRepository {
     }
   }
 
+  Future<MessageModel> uploadAttachment(
+    String channelId,
+    MultipartFile file, {
+    String content = '',
+    ProgressCallback? onSendProgress,
+  }) async {
+    try {
+      final formData = FormData.fromMap({'file': file, 'content': content});
+
+      final response = await _dio.post(
+        '/channels/$channelId/attachments/upload',
+        data: formData,
+        onSendProgress: onSendProgress,
+      );
+      return MessageModel.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<MessageAttachmentModel> createAttachmentMetadata(
     String messageId,
     Map<String, dynamic> attachmentData,
