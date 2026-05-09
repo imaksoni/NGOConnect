@@ -28,4 +28,14 @@ class RouteConstants {
   static const String channelListName = 'channelList';
   static const String channelDetailPath = '/channels/:channelId';
   static const String channelDetailName = 'channelDetail';
+
+  static const String ngoEventsPath = '/ngos/:ngoId/events';
+  static const String ngoEventsName = 'ngoEvents';
+  static const String createNgoEventPath = '/ngos/:ngoId/events/create';
+  static const String createNgoEventName = 'createNgoEvent';
+
+  static const String groupEventsPath = '/groups/:groupId/events';
+  static const String groupEventsName = 'groupEvents';
+  static const String createGroupEventPath = '/groups/:groupId/events/create';
+  static const String createGroupEventName = 'createGroupEvent';
 }

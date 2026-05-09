@@ -37,3 +37,22 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return user
+
+def get_current_user_optional(
+    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+) -> User | None:
+    if not token:
+        return None
+
+    payload = verify_token(token, "access")
+    if payload is None:
+        return None
+
+    user_id: str = payload.get("sub")
+    if user_id is None:
+        return None
+
+    user = user_repository.get_by_id(db, user_id=user_id)
+    if user is None or not user.is_active:
+        return None
+    return user

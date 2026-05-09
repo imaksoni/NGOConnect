@@ -51,7 +51,7 @@ class _ChannelDetailScreenState extends ConsumerState<ChannelDetailScreen> {
         title: channelState.when(
           data: (channel) => Text(channel.name),
           loading: () => const Text('Loading...'),
-          error: (_, __) => const Text('Error'),
+          error: (_, _) => const Text('Error'),
         ),
       ),
       body: Column(

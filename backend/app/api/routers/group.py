@@ -1,10 +1,11 @@
+from typing import Optional, List
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, get_current_user_optional, get_current_user_optional
 from app.schemas.group import Group, GroupCreate, GroupUpdate, GroupMember, GroupJoinRequest, GroupJoinRequestReview
 from app.services.group import group_service, group_member_service, group_role_service, group_join_request_service
 from app.services.ngo import ngo_service
@@ -279,3 +280,24 @@ def reject_join_request(
         raise HTTPException(status_code=403, detail="Not authorized to reject join requests")
 
     return group_join_request_service.reject_request(db, request_id, current_user.id, review.admin_comment)
+
+from app.schemas.event import Event, EventCreate
+from app.services.event import event_service
+
+@router.post("/{group_id}/events", response_model=Event, status_code=status.HTTP_201_CREATED)
+def create_group_event(
+    group_id: str,
+    event_in: EventCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return event_service.create_group_event(db, group_id, event_in, current_user.id)
+
+@router.get("/{group_id}/events", response_model=List[Event])
+def get_group_events(
+    group_id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    user_id = current_user.id if current_user else None
+    return event_service.get_group_events(db, group_id, user_id)
