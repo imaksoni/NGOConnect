@@ -51,7 +51,32 @@ class GroupDetailScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, _) {
+          final errorStr = error.toString().toLowerCase();
+          if (errorStr.contains('403') || errorStr.contains('unauthorized')) {
+             return const Center(
+               child: Padding(
+                 padding: EdgeInsets.all(16.0),
+                 child: Text('You are not authorized to view this group.'),
+               ),
+             );
+          }
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Error: $error'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.invalidate(groupDetailProvider(groupId));
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -62,65 +87,62 @@ class GroupDetailScreen extends ConsumerWidget {
     String groupId,
     String visibility,
   ) {
-    final requestsState = ref.watch(joinRequestsProvider(groupId));
+    final myMemberState = ref.watch(myGroupMemberProvider(groupId));
 
-    return requestsState.when(
-      data: (requests) {
-        return ElevatedButton(
-          onPressed: () {
-            context.push('/groups/$groupId/join-requests');
-          },
-          child: const Text('Manage Join Requests'),
-        );
-      },
-      loading: () => const CircularProgressIndicator(),
-      error: (e, st) {
-        final myMemberState = ref.watch(myGroupMemberProvider(groupId));
-        return myMemberState.when(
-          data: (myMember) {
-            if (myMember != null) {
-              return const SizedBox.shrink(); // Already a member
+    return myMemberState.when(
+      data: (myMember) {
+        final isGroupAdmin = myMember?.roleId == 'group_admin'; // Simplification for MVP
+
+        if (isGroupAdmin) {
+          return ElevatedButton(
+            onPressed: () {
+              context.push('/groups/$groupId/join-requests');
+            },
+            child: const Text('Manage Join Requests'),
+          );
+        }
+
+        if (myMember != null) {
+          return const SizedBox.shrink(); // Already a member, not an admin
+        }
+
+        final myRequestState = ref.watch(myJoinRequestProvider(groupId));
+        return myRequestState.when(
+          data: (myRequest) {
+            if (myRequest != null && myRequest.status == 'pending') {
+              return const Text(
+                'Request Pending',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            } else {
+              final notifierState = ref.watch(joinRequestNotifierProvider);
+              return ElevatedButton(
+                onPressed: notifierState.isLoading
+                    ? null
+                    : () {
+                        ref
+                            .read(joinRequestNotifierProvider.notifier)
+                            .requestToJoin(groupId);
+                      },
+                child: notifierState.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(),
+                      )
+                    : const Text('Request to Join'),
+              );
             }
-
-            final myRequestState = ref.watch(myJoinRequestProvider(groupId));
-            return myRequestState.when(
-              data: (myRequest) {
-                if (myRequest != null && myRequest.status == 'pending') {
-                  return const Text(
-                    'Request Pending',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  );
-                } else {
-                  final notifierState = ref.watch(joinRequestNotifierProvider);
-                  return ElevatedButton(
-                    onPressed: notifierState.isLoading
-                        ? null
-                        : () {
-                            ref
-                                .read(joinRequestNotifierProvider.notifier)
-                                .requestToJoin(groupId);
-                          },
-                    child: notifierState.isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(),
-                          )
-                        : const Text('Request to Join'),
-                  );
-                }
-              },
-              loading: () => const CircularProgressIndicator(),
-              error: (e, st) => const SizedBox.shrink(),
-            );
           },
           loading: () => const CircularProgressIndicator(),
           error: (e, st) => const SizedBox.shrink(),
         );
       },
+      loading: () => const CircularProgressIndicator(),
+      error: (e, st) => const SizedBox.shrink(),
     );
   }
 }

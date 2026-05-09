@@ -36,7 +36,32 @@ class ChannelListScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, stack) {
+          final errorStr = error.toString().toLowerCase();
+          if (errorStr.contains('403') || errorStr.contains('unauthorized')) {
+             return const Center(
+               child: Padding(
+                 padding: EdgeInsets.all(16.0),
+                 child: Text('You are not authorized to view these channels.'),
+               ),
+             );
+          }
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Error: $error'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.invalidate(groupChannelsProvider(groupId));
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
