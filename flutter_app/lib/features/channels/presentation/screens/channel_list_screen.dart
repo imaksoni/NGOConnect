@@ -39,12 +39,12 @@ class ChannelListScreen extends ConsumerWidget {
         error: (error, stack) {
           final errorStr = error.toString().toLowerCase();
           if (errorStr.contains('403') || errorStr.contains('unauthorized')) {
-             return const Center(
-               child: Padding(
-                 padding: EdgeInsets.all(16.0),
-                 child: Text('You are not authorized to view these channels.'),
-               ),
-             );
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('You are not authorized to view these channels.'),
+              ),
+            );
           }
           return Center(
             child: Column(

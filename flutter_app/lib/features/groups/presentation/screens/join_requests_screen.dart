@@ -66,12 +66,12 @@ class JoinRequestsScreen extends ConsumerWidget {
         error: (e, st) {
           final errorStr = e.toString().toLowerCase();
           if (errorStr.contains('403') || errorStr.contains('unauthorized')) {
-             return const Center(
-               child: Padding(
-                 padding: EdgeInsets.all(16.0),
-                 child: Text('You are not authorized to view join requests.'),
-               ),
-             );
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('You are not authorized to view join requests.'),
+              ),
+            );
           }
           return Center(
             child: Column(
