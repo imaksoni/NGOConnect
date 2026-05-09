@@ -1,7 +1,8 @@
+from typing import Optional, List
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, get_current_user_optional
 from app.schemas.ngo import Ngo, NgoCreate, NgoUpdate
 from app.services.ngo import ngo_service
 from app.models.user import User
@@ -73,3 +74,24 @@ def submit_verification_request(
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
     return ngo_service.submit_verification_request(db, db_obj=ngo)
+
+from app.schemas.event import Event, EventCreate
+from app.services.event import event_service
+
+@router.post("/{ngo_id}/events", response_model=Event, status_code=status.HTTP_201_CREATED)
+def create_ngo_event(
+    ngo_id: str,
+    event_in: EventCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return event_service.create_ngo_event(db, ngo_id, event_in, current_user.id)
+
+@router.get("/{ngo_id}/events", response_model=List[Event])
+def get_ngo_events(
+    ngo_id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    user_id = current_user.id if current_user else None
+    return event_service.get_ngo_events(db, ngo_id, user_id)

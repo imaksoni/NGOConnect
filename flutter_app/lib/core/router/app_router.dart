@@ -10,6 +10,8 @@ import '../../features/ngo/presentation/screens/group_detail_screen.dart';
 import '../../features/groups/presentation/screens/join_requests_screen.dart';
 import '../../features/channels/presentation/screens/channel_list_screen.dart';
 import '../../features/channels/presentation/screens/channel_detail_screen.dart';
+import '../../features/events/presentation/screens/event_list_screen.dart';
+import '../../features/events/presentation/screens/create_event_screen.dart';
 import 'route_constants.dart';
 
 final appRouter = GoRouter(
@@ -86,6 +88,38 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final channelId = state.pathParameters['channelId']!;
         return ChannelDetailScreen(channelId: channelId);
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.ngoEventsPath,
+      name: RouteConstants.ngoEventsName,
+      builder: (context, state) {
+        final ngoId = state.pathParameters['ngoId']!;
+        return EventListScreen(ngoId: ngoId);
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.createNgoEventPath,
+      name: RouteConstants.createNgoEventName,
+      builder: (context, state) {
+        final ngoId = state.pathParameters['ngoId']!;
+        return CreateEventScreen(ngoId: ngoId);
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.groupEventsPath,
+      name: RouteConstants.groupEventsName,
+      builder: (context, state) {
+        final groupId = state.pathParameters['groupId']!;
+        return EventListScreen(groupId: groupId);
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.createGroupEventPath,
+      name: RouteConstants.createGroupEventName,
+      builder: (context, state) {
+        final groupId = state.pathParameters['groupId']!;
+        return CreateEventScreen(groupId: groupId);
       },
     ),
   ],
