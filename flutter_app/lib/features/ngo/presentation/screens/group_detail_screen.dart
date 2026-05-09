@@ -54,12 +54,12 @@ class GroupDetailScreen extends ConsumerWidget {
         error: (error, _) {
           final errorStr = error.toString().toLowerCase();
           if (errorStr.contains('403') || errorStr.contains('unauthorized')) {
-             return const Center(
-               child: Padding(
-                 padding: EdgeInsets.all(16.0),
-                 child: Text('You are not authorized to view this group.'),
-               ),
-             );
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('You are not authorized to view this group.'),
+              ),
+            );
           }
           return Center(
             child: Column(
@@ -91,7 +91,8 @@ class GroupDetailScreen extends ConsumerWidget {
 
     return myMemberState.when(
       data: (myMember) {
-        final isGroupAdmin = myMember?.roleId == 'group_admin'; // Simplification for MVP
+        final isGroupAdmin =
+            myMember?.roleId == 'group_admin'; // Simplification for MVP
 
         if (isGroupAdmin) {
           return ElevatedButton(
