@@ -39,13 +39,16 @@ class NgoDetailScreen extends ConsumerWidget {
   }
 }
 
-class _NgoDetailContent extends StatelessWidget {
+class _NgoDetailContent extends ConsumerWidget {
   final NgoModel ngo;
 
   const _NgoDetailContent({required this.ngo});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // In a real app we might fetch user role for this NGO here.
+    // For now we assume the View Groups allows anyone, but we would conditionally render Admin buttons.
+    // final myRole = ref.watch(myNgoRoleProvider(ngo.id));
     return DefaultTabController(
       length: 1,
       child: Column(
@@ -90,14 +93,29 @@ class _NgoDetailContent extends StatelessWidget {
           Expanded(child: TabBarView(children: [_buildAboutTab(context)])),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: () {
-                context.pushNamed(
-                  RouteConstants.groupListName,
-                  pathParameters: {'ngoId': ngo.id},
-                );
-              },
-              child: const Text('View Groups'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    context.pushNamed(
+                      RouteConstants.groupListName,
+                      pathParameters: {'ngoId': ngo.id},
+                    );
+                  },
+                  child: const Text('View Groups'),
+                ),
+                // Placeholders for Admin Actions that would be conditionally rendered
+                /*
+                if (myRole == 'admin' || myRole == 'owner')
+                  ElevatedButton(
+                    onPressed: () {
+                      // verification request logic
+                    },
+                    child: const Text('Verify NGO'),
+                  ),
+                */
+              ],
             ),
           ),
         ],

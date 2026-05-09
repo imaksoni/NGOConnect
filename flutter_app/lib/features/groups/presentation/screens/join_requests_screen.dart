@@ -63,7 +63,32 @@ class JoinRequestsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(child: Text('Error: $e')),
+        error: (e, st) {
+          final errorStr = e.toString().toLowerCase();
+          if (errorStr.contains('403') || errorStr.contains('unauthorized')) {
+             return const Center(
+               child: Padding(
+                 padding: EdgeInsets.all(16.0),
+                 child: Text('You are not authorized to view join requests.'),
+               ),
+             );
+          }
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Error: $e'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.invalidate(joinRequestsProvider(groupId));
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
