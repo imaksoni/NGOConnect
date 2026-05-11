@@ -1,5 +1,6 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+import asyncio
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,7 @@ from app.api.deps import get_db, get_current_user
 from app.schemas.message import Message, MessageCreate, MessageAttachment, MessageAttachmentCreate
 from app.services.message import message_service
 from app.models.user import User
+from app.core.websockets import manager
 
 router = APIRouter(tags=["Messages"])
 
@@ -23,14 +25,23 @@ def list_messages(
 ):
     return message_service.get_messages(db, channel_id, current_user.id, limit, offset)
 
+async def broadcast_message(channel_id: str, message: Message):
+    # Using model_dump mode='json' converts datetime objects etc to JSON serializable formats
+    message_dict = Message.model_validate(message).model_dump(mode='json')
+    # Use FastAPI async background tasks directly to preserve loop
+    await manager.broadcast_to_channel(channel_id, message_dict)
+
 @router.post("/channels/{channel_id}/messages", response_model=Message, status_code=status.HTTP_201_CREATED)
 def create_message(
     channel_id: str,
     message_in: MessageCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return message_service.create_message(db, message_in, channel_id, current_user.id)
+    message = message_service.create_message(db, message_in, channel_id, current_user.id)
+    background_tasks.add_task(broadcast_message, channel_id, message)
+    return message
 
 @router.post("/messages/{message_id}/attachments", response_model=MessageAttachment, status_code=status.HTTP_201_CREATED)
 def create_attachment(
@@ -44,6 +55,7 @@ def create_attachment(
 @router.post("/channels/{channel_id}/attachments/upload", response_model=Message, status_code=status.HTTP_201_CREATED)
 def upload_attachment(
     channel_id: str,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     content: Optional[str] = Form(""),
     db: Session = Depends(get_db),
@@ -77,8 +89,11 @@ def upload_attachment(
     )
     message_service.create_attachment(db, attachment_in, message.id, current_user.id)
 
+    updated_message = message_service.get_message(db, message.id)
+    background_tasks.add_task(broadcast_message, channel_id, updated_message)
+
     # Return updated message with attachments
-    return message_service.get_message(db, message.id)
+    return updated_message
 
 @router.get("/attachments/{attachment_id}/download")
 def download_attachment(

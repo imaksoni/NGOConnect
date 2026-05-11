@@ -51,6 +51,7 @@ The application follows a strict hierarchical Role-Based Access Control (RBAC) m
 - `GET /groups/{group_id}/channels` - List channels
 - `POST /channels/{channel_id}/messages` - Send a message
 - `GET /channels/{channel_id}/messages` - Retrieve messages
+- `WS /ws/channels/{channel_id}?token={access_token}` - WebSocket endpoint for realtime messages
 
 ## Testing
 
@@ -74,6 +75,7 @@ flutter test
 2. **Role Promotion UI:** The backend supports assigning/removing roles (`/groups/{group_id}/roles/assign`), but the Flutter app requires UI workflows to expose this feature for Group Admins.
 3. **Caching:** Highly accessed read endpoints (`/ngos/discover`) would benefit from Redis caching.
 4. **Offline Mode:** The Flutter app currently relies completely on live network status. Adding local database caching (e.g. Isar or Hive) for messages and events is recommended.
+5. **WebSocket Scaling:** The current realtime messaging uses an in-memory `ConnectionManager`. This works well for single-instance deployments but will not scale horizontally across multiple instances. Future iterations should implement a Redis Pub/Sub backend to synchronize broadcasts across multiple server nodes.
 
 ## Storage Architecture
 

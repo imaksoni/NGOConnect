@@ -26,8 +26,8 @@ class _ChannelDetailScreenState extends ConsumerState<ChannelDetailScreen> {
     try {
       await repo.createMessage(widget.channelId, text);
       _controller.clear();
-      // Refresh the messages
-      ref.invalidate(messagesProvider(widget.channelId));
+      // Notice: We removed the invalidate() here because the WebSocket broadcast
+      // will automatically push the new message to our state.
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -75,7 +75,7 @@ class _ChannelDetailScreenState extends ConsumerState<ChannelDetailScreen> {
       );
 
       _controller.clear();
-      ref.invalidate(messagesProvider(widget.channelId));
+      // Also no invalidate here; the backend will broadcast the new message.
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
