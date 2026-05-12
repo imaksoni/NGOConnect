@@ -8,15 +8,17 @@ final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   return MessageRepository();
 });
 
-final channelWebSocketRepositoryProvider = Provider.autoDispose.family<ChannelWebSocketRepository, String>((ref, channelId) {
-  final repo = ChannelWebSocketRepository();
-  ref.onDispose(() {
-    repo.disconnect();
-  });
-  return repo;
-});
+final channelWebSocketRepositoryProvider = Provider.autoDispose
+    .family<ChannelWebSocketRepository, String>((ref, channelId) {
+      final repo = ChannelWebSocketRepository();
+      ref.onDispose(() {
+        repo.disconnect();
+      });
+      return repo;
+    });
 
-class MessagesNotifier extends AutoDisposeFamilyAsyncNotifier<List<MessageModel>, String> {
+class MessagesNotifier
+    extends AutoDisposeFamilyAsyncNotifier<List<MessageModel>, String> {
   StreamSubscription<MessageModel>? _wsSubscription;
 
   @override
@@ -34,16 +36,15 @@ class MessagesNotifier extends AutoDisposeFamilyAsyncNotifier<List<MessageModel>
     // 2. Connect and listen to WebSocket
     await wsRepository.connect(arg);
     _wsSubscription = wsRepository.messages.listen((newMessage) {
-        final currentState = state.valueOrNull ?? [];
-        if (!currentState.any((m) => m.id == newMessage.id)) {
-           state = AsyncData([newMessage, ...currentState]);
-        }
+      final currentState = state.valueOrNull ?? [];
+      if (!currentState.any((m) => m.id == newMessage.id)) {
+        state = AsyncData([newMessage, ...currentState]);
+      }
     });
 
     return initialMessages;
   }
 }
 
-final messagesProvider = AsyncNotifierProvider.autoDispose.family<MessagesNotifier, List<MessageModel>, String>(
-  MessagesNotifier.new,
-);
+final messagesProvider = AsyncNotifierProvider.autoDispose
+    .family<MessagesNotifier, List<MessageModel>, String>(MessagesNotifier.new);

@@ -47,7 +47,7 @@ class ChannelWebSocketRepository {
         onError: (error) {
           _channel = null;
           if (!_isIntentionalDisconnect) {
-             _scheduleReconnect(channelId);
+            _scheduleReconnect(channelId);
           }
         },
       );

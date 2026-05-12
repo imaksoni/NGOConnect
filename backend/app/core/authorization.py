@@ -4,6 +4,13 @@ from fastapi import HTTPException, status
 from app.services.group import group_member_service, group_service
 from app.services.ngo_member import ngo_member_service
 from app.services.ngo import ngo_service
+from app.repositories.user import user_repository
+
+def check_platform_admin(db: Session, user_id: str):
+    user = user_repository.get_by_id(db, user_id=user_id)
+    if not user or not user.is_platform_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a platform admin")
+    return True
 
 def check_ngo_admin(db: Session, user_id: str, ngo_id: str):
     ngo_member = ngo_member_service.get_member(db, user_id, ngo_id)

@@ -53,6 +53,20 @@ class _HomeContent extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
+          authState.maybeWhen(
+            data: (user) {
+              if (user != null && user.isPlatformAdmin) {
+                return IconButton(
+                  icon: const Icon(Icons.admin_panel_settings),
+                  onPressed: () {
+                    context.pushNamed(RouteConstants.adminDashboardName);
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
