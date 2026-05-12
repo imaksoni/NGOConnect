@@ -12,6 +12,7 @@ import '../../features/channels/presentation/screens/channel_list_screen.dart';
 import '../../features/channels/presentation/screens/channel_detail_screen.dart';
 import '../../features/events/presentation/screens/event_list_screen.dart';
 import '../../features/events/presentation/screens/create_event_screen.dart';
+import '../../features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'route_constants.dart';
 
 final appRouter = GoRouter(
@@ -121,6 +122,11 @@ final appRouter = GoRouter(
         final groupId = state.pathParameters['groupId']!;
         return CreateEventScreen(groupId: groupId);
       },
+    ),
+    GoRoute(
+      path: RouteConstants.adminDashboardPath,
+      name: RouteConstants.adminDashboardName,
+      builder: (context, state) => const AdminDashboardScreen(),
     ),
   ],
 );

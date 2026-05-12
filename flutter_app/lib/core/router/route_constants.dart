@@ -38,4 +38,8 @@ class RouteConstants {
   static const String groupEventsName = 'groupEvents';
   static const String createGroupEventPath = '/groups/:groupId/events/create';
   static const String createGroupEventName = 'createGroupEvent';
+
+  // Admin
+  static const String adminDashboardPath = '/admin/dashboard';
+  static const String adminDashboardName = 'admin-dashboard';
 }
