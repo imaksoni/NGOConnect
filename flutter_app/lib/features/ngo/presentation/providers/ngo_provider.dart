@@ -15,6 +15,17 @@ final discoverNgosProvider = FutureProvider.autoDispose<List<NgoModel>>((
   return repository.getDiscoverableNgos();
 });
 
+final searchNgosProvider = FutureProvider.family.autoDispose<List<NgoModel>, String>((
+  ref,
+  query,
+) async {
+  final repository = ref.watch(ngoRepositoryProvider);
+  if (query.isEmpty) {
+    return repository.getDiscoverableNgos();
+  }
+  return repository.searchNgos(query);
+});
+
 final ngoDetailProvider = FutureProvider.family.autoDispose<NgoModel, String>((
   ref,
   slug,

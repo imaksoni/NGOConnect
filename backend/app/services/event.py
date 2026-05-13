@@ -35,7 +35,7 @@ class EventService:
         event = event_repo.create(db, obj_in=event_in, event_id=event_id, creator_id=creator_id, ngo_id=ngo_id)
 
         # Notify NGO members
-        if not event.is_private:
+        if event.visibility == EventVisibility.public:
             members = db.query(NgoMember).filter(NgoMember.ngo_id == ngo_id).all()
             for member in members:
                 if member.user_id != creator_id:

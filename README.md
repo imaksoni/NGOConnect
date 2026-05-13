@@ -19,7 +19,28 @@ The application follows a strict hierarchical Role-Based Access Control (RBAC) m
 - **Channels:** Reside within groups. Channels inherit group visibility and can be additionally restricted via their own `invite_only` flag.
 - **Events:** Only *verified* NGOs can publish `public` events. Non-verified NGOs are restricted to creating `members_only` events.
 
+## Search Architecture
+NgoConnect supports first-class PostgreSQL-backed search across NGOs, Groups, and Events.
+
+- **Indexes**: Uses PostgreSQL full-text search `TSVECTOR` and `GIN` indexes.
+- **Fields Indexed**:
+  - `ngos`: `name`, `about`, `slug`
+  - `groups`: `name`, `about`, `slug`
+  - `events`: `title`, `description`, `location`
+- **Filters Supported**:
+  - Visibility (public vs invite-only/private vs members-only)
+  - Verification status (only verified NGOs appear in public search)
+  - Authorization (search returns groups and events you have access to as an NGO owner/admin or group member)
+- **Limitations**:
+  - Native PostgreSQL search handles text matching well, but complex typographic corrections or fuzzy matching is limited compared to dedicated search engines like Elasticsearch.
+  - SQLite backend uses a simplified `ilike` wildcard fallback matching approach, meaning full-text features like exact string boundaries and ranking are limited during local testing.
+
 ## Endpoints
+
+### Search
+- `GET /search/ngos` - Search for public, verified NGOs.
+- `GET /search/groups` - Search groups you have access to.
+- `GET /search/events` - Search events you have access to.
 
 ### Auth
 - `POST /auth/register` - Register a new user

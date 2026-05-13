@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.core.config import settings
-from app.api.routers import auth, ngo, group, channel, message, event, ws, admin, device
+from app.api.routers import auth, ngo, group, channel, message, event, ws, admin, device, search
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -13,6 +13,7 @@ app.include_router(event.router)
 app.include_router(ws.router)
 app.include_router(admin.router)
 app.include_router(device.router)
+app.include_router(search.router)
 
 @app.get("/health", tags=["Health"])
 def health_check():
