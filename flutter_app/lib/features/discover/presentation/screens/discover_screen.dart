@@ -4,15 +4,67 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/route_constants.dart';
 import '../../../ngo/presentation/providers/ngo_provider.dart';
 
-class DiscoverScreen extends ConsumerWidget {
+class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final discoverNgosState = ref.watch(discoverNgosProvider);
+  ConsumerState<DiscoverScreen> createState() => _DiscoverScreenState();
+}
+
+class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final discoverNgosState = _searchQuery.isEmpty
+        ? ref.watch(discoverNgosProvider)
+        : ref.watch(searchNgosProvider(_searchQuery));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Discover')),
+      appBar: AppBar(
+        title: const Text('Discover'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60.0),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search NGOs...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+              ),
+              onSubmitted: (value) {
+                setState(() {
+                  _searchQuery = value.trim();
+                });
+              },
+            ),
+          ),
+        ),
+      ),
       body: discoverNgosState.when(
         data: (ngos) {
           if (ngos.isEmpty) {
@@ -20,7 +72,13 @@ class DiscoverScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () => ref.refresh(discoverNgosProvider.future),
+            onRefresh: () async {
+              if (_searchQuery.isEmpty) {
+                ref.invalidate(discoverNgosProvider);
+              } else {
+                ref.invalidate(searchNgosProvider(_searchQuery));
+              }
+            },
             child: ListView.builder(
               itemCount: ngos.length,
               itemBuilder: (context, index) {
@@ -53,7 +111,11 @@ class DiscoverScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  ref.invalidate(discoverNgosProvider);
+                  if (_searchQuery.isEmpty) {
+                    ref.invalidate(discoverNgosProvider);
+                  } else {
+                    ref.invalidate(searchNgosProvider(_searchQuery));
+                  }
                 },
                 child: const Text('Retry'),
               ),

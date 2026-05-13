@@ -12,6 +12,12 @@ class NgoRepository {
     return data.map((json) => NgoModel.fromJson(json)).toList();
   }
 
+  Future<List<NgoModel>> searchNgos(String query) async {
+    final response = await _apiClient.dio.get('/search/ngos', queryParameters: {'q': query});
+    final List<dynamic> data = response.data;
+    return data.map((json) => NgoModel.fromJson(json)).toList();
+  }
+
   Future<NgoModel> getNgoBySlug(String slug) async {
     final response = await _apiClient.dio.get('/ngos/slug/$slug');
     return NgoModel.fromJson(response.data);
