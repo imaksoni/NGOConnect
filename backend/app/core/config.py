@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     LOCAL_STORAGE_DIR: str = "uploads"
     MAX_UPLOAD_SIZE_MB: int = 10
 
+    # Firebase Config
+    FIREBASE_CREDENTIALS_JSON: str | None = None
+    FIREBASE_CREDENTIALS_PATH: str | None = None
+
     # S3 Config
     S3_BUCKET_NAME: str | None = None
     S3_ENDPOINT_URL: str | None = None

@@ -6,6 +6,9 @@ from fastapi import HTTPException
 from app.models.event import Event, EventVisibility
 from app.models.ngo import NgoVerificationStatus
 from app.schemas.event import EventCreate, EventUpdate
+from app.services.notification import notification_service
+from app.models.ngo_member import NgoMember
+from app.models.group import GroupMember
 from app.repositories.event import event_repo
 from app.services.ngo import ngo_service
 from app.services.group import group_service
@@ -29,7 +32,22 @@ class EventService:
             raise HTTPException(status_code=403, detail="Non-verified NGOs cannot publish public events")
 
         event_id = str(uuid.uuid4())
-        return event_repo.create(db, obj_in=event_in, event_id=event_id, creator_id=creator_id, ngo_id=ngo_id)
+        event = event_repo.create(db, obj_in=event_in, event_id=event_id, creator_id=creator_id, ngo_id=ngo_id)
+
+        # Notify NGO members
+        if not event.is_private:
+            members = db.query(NgoMember).filter(NgoMember.ngo_id == ngo_id).all()
+            for member in members:
+                if member.user_id != creator_id:
+                    notification_service.send_push_notification(
+                        db=db,
+                        user_id=member.user_id,
+                        title="New NGO Event",
+                        body=f"A new event '{event.title}' was created by '{ngo.name}'.",
+                        data={"type": "new_event", "event_id": event.id}
+                    )
+
+        return event
 
     def create_group_event(self, db: Session, group_id: str, event_in: EventCreate, creator_id: str) -> Event:
         group = group_service.get_group(db, group_id)
@@ -51,7 +69,21 @@ class EventService:
             raise HTTPException(status_code=403, detail="Groups under non-verified NGOs cannot publish public events")
 
         event_id = str(uuid.uuid4())
-        return event_repo.create(db, obj_in=event_in, event_id=event_id, creator_id=creator_id, group_id=group_id)
+        event = event_repo.create(db, obj_in=event_in, event_id=event_id, creator_id=creator_id, group_id=group_id)
+
+        # Notify Group members
+        members = db.query(GroupMember).filter(GroupMember.group_id == group_id).all()
+        for member in members:
+            if member.user_id != creator_id:
+                notification_service.send_push_notification(
+                    db=db,
+                    user_id=member.user_id,
+                    title="New Group Event",
+                    body=f"A new event '{event.title}' was created in group '{group.name}'.",
+                    data={"type": "new_event", "event_id": event.id}
+                )
+
+        return event
 
     def update_event(self, db: Session, event_id: str, event_in: EventUpdate, user_id: str) -> Event:
         event = event_repo.get(db, event_id)

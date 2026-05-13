@@ -1,4 +1,6 @@
 from typing import List, Optional
+from app.services.notification import notification_service
+from app.models.ngo import Ngo
 from sqlalchemy.orm import Session
 from app.models.group import Group, GroupMember, GroupRole, GroupJoinRequest, JoinRequestStatus
 from app.schemas.group import GroupCreate, GroupUpdate
@@ -135,6 +137,17 @@ class GroupJoinRequestService:
         db.commit()
         db.refresh(db_obj)
 
+        # Trigger push notification
+        group = db.query(Group).filter(Group.id == db_obj.group_id).first()
+        if group:
+            notification_service.send_push_notification(
+                db=db,
+                user_id=db_obj.user_id,
+                title="Join Request Approved",
+                body=f"Your request to join '{group.name}' has been approved.",
+                data={"type": "group_join_approved", "group_id": group.id}
+            )
+
         return db_obj
 
     def reject_request(self, db: Session, request_id: str, reviewer_id: str, admin_comment: Optional[str] = None) -> GroupJoinRequest:
@@ -145,8 +158,21 @@ class GroupJoinRequestService:
         if db_obj.status != JoinRequestStatus.pending:
             raise HTTPException(status_code=400, detail=f"Cannot reject a request with status: {db_obj.status}")
 
-        return group_join_request_repo.update(
+        updated_obj = group_join_request_repo.update(
             db, db_obj=db_obj, status=JoinRequestStatus.rejected, reviewer_id=reviewer_id, admin_comment=admin_comment
         )
+
+        # Trigger push notification
+        group = db.query(Group).filter(Group.id == updated_obj.group_id).first()
+        if group:
+            notification_service.send_push_notification(
+                db=db,
+                user_id=updated_obj.user_id,
+                title="Join Request Rejected",
+                body=f"Your request to join '{group.name}' was rejected.",
+                data={"type": "group_join_rejected", "group_id": group.id}
+            )
+
+        return updated_obj
 
 group_join_request_service = GroupJoinRequestService()

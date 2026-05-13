@@ -95,3 +95,29 @@ For Google Sign-In to function properly on actual devices, you must perform plat
 
 ## Notes
 - The authentication flow (Splash, Welcome, Login, Register) is fully functional and uses Riverpod for state management, `dio` for API calls, and `flutter_secure_storage` for token persistence.
+
+## Push Notifications (MVP)
+
+The app integrates `firebase_messaging` to receive FCM push notifications triggered by important backend events.
+
+**Android Setup Requirements:**
+- Download your `google-services.json` from the Firebase Console.
+- Place it in `android/app/google-services.json`.
+
+**iOS Setup Requirements:**
+- Download your `GoogleService-Info.plist` from the Firebase Console.
+- Place it in `ios/Runner/GoogleService-Info.plist`.
+- Ensure **Push Notifications** and **Background Modes (Remote Notifications)** capabilities are enabled in Xcode.
+- A valid APNs key must be uploaded to Firebase for iOS delivery.
+
+**Flow Summary:**
+- On successful login or app startup (if already logged in), the app requests notification permissions.
+- If granted, the app retrieves the FCM device token and registers it with the backend via `POST /devices/register`.
+- On logout, the app explicitly calls `POST /devices/unregister` to stop receiving notifications on that device.
+- Deep linking from notifications is currently not supported in the MVP.
+
+**Duplicate Token Registration:**
+- If the same FCM token is registered by a different user account on the same device, backend logic reassigns the token to the newly logged-in user to prevent notification bleeding across accounts.
+
+**Refresh Token Handling:**
+- The `PushNotificationService` listens to the `FirebaseMessaging.instance.onTokenRefresh` stream. If a token refresh occurs while the user is authenticated, the updated token is automatically re-registered with the backend via `DeviceApi`.
