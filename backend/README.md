@@ -89,3 +89,20 @@ To run the authentication tests, execute:
 pytest app/tests/test_auth.py
 ```
 This requires `pytest` and `httpx` to be installed (included in `requirements.txt`).
+
+### Push Notifications
+Push notifications are powered by Firebase Cloud Messaging (FCM).
+
+**Setup Requirements:**
+- Provide a valid `FIREBASE_CREDENTIALS_JSON` or `FIREBASE_CREDENTIALS_PATH` in the `.env` file pointing to a Google service account with FCM permissions.
+- Devices are registered via `POST /devices/register` to receive tokens. Tokens are automatically invalidated upon send failures if they are no longer valid.
+
+**Triggering Events:**
+Currently, push notifications are sent out for:
+1. User joins an NGO or Group.
+2. User's join request to a Group is approved or rejected.
+3. NGO verification request is approved or rejected.
+4. New events are published to a Group or an NGO.
+
+**MVP Limitations:**
+- Message notifications are intentionally omitted to avoid notification spam until preferences are introduced.

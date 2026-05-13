@@ -62,6 +62,15 @@ def verify_ngo(
     db.commit()
     db.refresh(ngo)
 
+    # Send push notification to NGO creator
+    notification_service.send_push_notification(
+        db=db,
+        user_id=ngo.creator_id,
+        title="NGO Verified",
+        body=f"Your NGO '{ngo.name}' has been successfully verified.",
+        data={"type": "ngo_verified", "ngo_id": ngo.id}
+    )
+
     return {"status": "success", "ngo_id": ngo.id, "verification_status": ngo.verification_status}
 
 @router.post("/ngos/{ngo_id}/reject-verification")
@@ -92,5 +101,14 @@ def reject_ngo_verification(
 
     db.commit()
     db.refresh(ngo)
+
+    # Send push notification to NGO creator
+    notification_service.send_push_notification(
+        db=db,
+        user_id=ngo.creator_id,
+        title="NGO Verification Rejected",
+        body=f"Your NGO verification request for '{ngo.name}' was rejected.",
+        data={"type": "ngo_verification_rejected", "ngo_id": ngo.id}
+    )
 
     return {"status": "success", "ngo_id": ngo.id, "verification_status": ngo.verification_status}

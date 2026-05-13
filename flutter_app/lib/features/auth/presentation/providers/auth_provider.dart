@@ -4,6 +4,8 @@ import '../../../../core/network/api_client.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/token_repository.dart';
+import '../../../../core/network/device_api.dart';
+import '../../../../core/notifications/push_notification_service.dart';
 
 final tokenRepositoryProvider = Provider<TokenRepository>((ref) {
   return TokenRepository();
@@ -27,18 +29,53 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return authRepository;
 });
 
+final pushNotificationServiceProvider = Provider<PushNotificationService>((
+  ref,
+) {
+  return PushNotificationService();
+});
+
+final deviceApiProvider = Provider<DeviceApi>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return DeviceApi(apiClient: apiClient);
+});
+
 final authProvider = NotifierProvider<AuthNotifier, AsyncValue<UserModel?>>(
   AuthNotifier.new,
 );
 
 class AuthNotifier extends Notifier<AsyncValue<UserModel?>> {
   late final AuthRepository _authRepository;
+  late final PushNotificationService _pushNotificationService;
+  late final DeviceApi _deviceApi;
+  String? _fcmToken;
 
   @override
   AsyncValue<UserModel?> build() {
     _authRepository = ref.watch(authRepositoryProvider);
+    _pushNotificationService = ref.watch(pushNotificationServiceProvider);
+    _deviceApi = ref.watch(deviceApiProvider);
+    _pushNotificationService.setDeviceApi(_deviceApi);
+    _pushNotificationService.initialize();
     checkAuthStatus();
     return const AsyncValue.loading();
+  }
+
+  Future<void> _registerDeviceToken() async {
+    final granted = await _pushNotificationService.requestPermissions();
+    if (granted) {
+      _fcmToken = await _pushNotificationService.getToken();
+      if (_fcmToken != null) {
+        await _deviceApi.registerDeviceToken(_fcmToken!);
+      }
+    }
+  }
+
+  Future<void> _unregisterDeviceToken() async {
+    if (_fcmToken != null) {
+      await _deviceApi.unregisterDeviceToken(_fcmToken!);
+      _fcmToken = null;
+    }
   }
 
   Future<void> checkAuthStatus() async {
@@ -46,6 +83,9 @@ class AuthNotifier extends Notifier<AsyncValue<UserModel?>> {
     try {
       final user = await _authRepository.getMe();
       state = AsyncValue.data(user);
+      if (user != null) {
+        await _registerDeviceToken();
+      }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -115,6 +155,7 @@ class AuthNotifier extends Notifier<AsyncValue<UserModel?>> {
   Future<void> logout() async {
     state = const AsyncValue.loading();
     try {
+      await _unregisterDeviceToken();
       await _authRepository.logout();
       state = const AsyncValue.data(null);
     } catch (e, stack) {

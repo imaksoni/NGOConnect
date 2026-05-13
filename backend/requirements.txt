@@ -14,3 +14,4 @@ google-auth
 requests
 email-validator
 boto3
+firebase-admin
