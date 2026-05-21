@@ -2,6 +2,49 @@
 
 Welcome to the NgoConnect project! This repository uses a monorepo structure containing both the mobile application and the backend service.
 
+## Observability & Analytics
+
+### Logging Approach
+NgoConnect uses structured JSON logging in the backend (`app/core/logger.py`) and standard Dart developer logging on the frontend (`AppLogger`). All log records inherently track contextual fields (like timestamp, level, and logger name), providing an easy integration path for standard log-aggregation platforms (e.g., Datadog, ELK).
+
+### Correlation ID Behavior
+To trace requests as they navigate the backend:
+- The middleware (`RequestContextMiddleware`) searches for an `X-Request-ID` or `X-Correlation-ID` incoming header.
+- If no header is provided, a new UUID is generated.
+- This ID is stored in a `contextvars.ContextVar`, automatically injecting the `request_id` into all logs emitted during the lifecycle of the request.
+- The `request_id` is then returned in the HTTP response headers under `X-Request-ID`.
+- WebSocket connections capture the ID during the handshake, ensuring socket lifecycle events belong to the same correlation boundary.
+
+### Analytics Events Tracked
+Business logic flows generate distinct analytics events routed through the standard structured logging output, bypassing the need for a separate high-volume analytics database table. The events currently tracked are:
+- `user_registered`: When a new user completes the sign-up flow.
+- `ngo_created`: When an NGO profile is initialized.
+- `ngo_verified`: When a platform admin approves an NGO.
+- `group_created`: When a new group is spawned under an NGO.
+- `join_request_submitted`: When a user asks to join a private group.
+- `join_request_approved`: When an administrator allows the user into a group.
+- `event_created`: When an NGO or Group publishes a new event calendar invite.
+- `attachment_uploaded`: When a user attaches media to a channel message.
+
+### Privacy and Sensitive Data Exclusions
+To maintain strict compliance and protect user data, explicit filter rules have been added to the logger formats (`SENSITIVE_KEYS`). The following fields are redacted as `***` dynamically before reaching standard output:
+- `password`
+- `token`
+- `access_token`
+- `refresh_token`
+- `secret`
+- `id_token`
+- `authorization`
+- `device_token`
+- `fcm_token`
+
+*Note: Avoid passing raw personal data or sensitive request/response payloads in arbitrary logging `extra` dictionaries.*
+
+### Future Observability Roadmap
+1.  **Metrics Integration:** Incorporate Prometheus/OpenTelemetry metrics to capture granular latency and error-rate data.
+2.  **Distributed Tracing:** Add Jaeger or standard OpenTelemetry tracing context propagation between microservices/layers.
+3.  **Dashboards & Alerting:** Build out Grafana dashboards connecting directly to the structured log ingest, and configure alerts for irregular error rates or authentication drops.
+
 ## Project Structure
 
 This monorepo is divided into two primary parts:

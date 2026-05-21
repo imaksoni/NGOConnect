@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 from app.core.config import settings
 from app.api.routers import auth, ngo, group, channel, message, event, ws, admin, device, search
+from app.core.logger import setup_logging
+from app.core.middleware import RequestContextMiddleware
+
+setup_logging()
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
+app.add_middleware(RequestContextMiddleware)
 
 app.include_router(auth.router)
 app.include_router(ngo.router)

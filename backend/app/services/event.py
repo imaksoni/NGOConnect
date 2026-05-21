@@ -34,6 +34,15 @@ class EventService:
         event_id = str(uuid.uuid4())
         event = event_repo.create(db, obj_in=event_in, event_id=event_id, creator_id=creator_id, ngo_id=ngo_id)
 
+        from app.core.analytics import analytics_service
+        analytics_service.log_event(
+            event_name="event_created",
+            actor_user_id=creator_id,
+            entity_type="event",
+            entity_id=event.id,
+            metadata={"ngo_id": ngo_id}
+        )
+
         # Notify NGO members
         if event.visibility == EventVisibility.public:
             members = db.query(NgoMember).filter(NgoMember.ngo_id == ngo_id).all()
@@ -70,6 +79,15 @@ class EventService:
 
         event_id = str(uuid.uuid4())
         event = event_repo.create(db, obj_in=event_in, event_id=event_id, creator_id=creator_id, group_id=group_id)
+
+        from app.core.analytics import analytics_service
+        analytics_service.log_event(
+            event_name="event_created",
+            actor_user_id=creator_id,
+            entity_type="event",
+            entity_id=event.id,
+            metadata={"group_id": group_id}
+        )
 
         # Notify Group members
         members = db.query(GroupMember).filter(GroupMember.group_id == group_id).all()

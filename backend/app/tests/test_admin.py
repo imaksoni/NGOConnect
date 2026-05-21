@@ -16,18 +16,19 @@ def test_admin_access_allowed_and_actions(client: TestClient, db, normal_user_to
     db.commit()
 
     # Create a pending NGO
-    ngo = Ngo(id="test-ngo", name="Test NGO", slug="test-ngo", verification_status=NgoVerificationStatus.pending)
-    db.add(ngo)
-    db.commit()
+    from app.services.ngo import ngo_service
+    from app.schemas.ngo import NgoCreate
+    ngo_in = NgoCreate(name="Test NGO", slug="test-ngo", visibility="public")
+    ngo = ngo_service.create_ngo(db, ngo_in, creator_user_id=normal_user["id"])
 
     # Admin accesses verification requests
     response = client.get("/admin/moderation/verification-requests", headers=user_token_headers)
     assert response.status_code == 200
     assert len(response.json()) > 0
-    assert response.json()[0]["id"] == "test-ngo"
+    assert response.json()[0]["id"] == ngo.id
 
     # Admin verifies NGO
-    response = client.post("/admin/ngos/test-ngo/verify", headers=user_token_headers)
+    response = client.post(f"/admin/ngos/{ngo.id}/verify", headers=user_token_headers)
     assert response.status_code == 200
     assert response.json()["verification_status"] == "verified"
 
@@ -37,4 +38,4 @@ def test_admin_access_allowed_and_actions(client: TestClient, db, normal_user_to
     logs = response.json()
     assert len(logs) > 0
     assert logs[0]["action_type"] == "verify_ngo"
-    assert logs[0]["entity_id"] == "test-ngo"
+    assert logs[0]["entity_id"] == ngo.id

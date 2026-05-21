@@ -8,6 +8,8 @@ from app.models.audit_log import AuditLog
 from app.core.authorization import check_platform_admin
 from app.services.audit import audit_service
 from app.schemas.admin import AuditLogBase, VerificationRequestResponse
+from app.core.analytics import analytics_service
+from app.services.notification import notification_service
 
 router = APIRouter(prefix="/admin", tags=["Admin Moderation"])
 
@@ -62,13 +64,29 @@ def verify_ngo(
     db.commit()
     db.refresh(ngo)
 
-    # Send push notification to NGO creator
-    notification_service.send_push_notification(
-        db=db,
-        user_id=ngo.creator_id,
-        title="NGO Verified",
-        body=f"Your NGO '{ngo.name}' has been successfully verified.",
-        data={"type": "ngo_verified", "ngo_id": ngo.id}
+    # Determine the NGO creator/owner to send notification
+    from app.models.ngo_member import NgoMember
+    from app.models.ngo_role import NgoRole
+    owner = db.query(NgoMember).join(NgoRole).filter(
+        NgoMember.ngo_id == ngo.id,
+        NgoRole.name == "owner"
+    ).first()
+
+    if owner:
+        # Send push notification to NGO creator
+        notification_service.send_push_notification(
+            db=db,
+            user_id=owner.user_id,
+            title="NGO Verified",
+            body=f"Your NGO '{ngo.name}' has been successfully verified.",
+            data={"type": "ngo_verified", "ngo_id": ngo.id}
+        )
+
+    analytics_service.log_event(
+        event_name="ngo_verified",
+        actor_user_id=current_user.id,
+        entity_type="ngo",
+        entity_id=ngo.id
     )
 
     return {"status": "success", "ngo_id": ngo.id, "verification_status": ngo.verification_status}
@@ -102,13 +120,22 @@ def reject_ngo_verification(
     db.commit()
     db.refresh(ngo)
 
-    # Send push notification to NGO creator
-    notification_service.send_push_notification(
-        db=db,
-        user_id=ngo.creator_id,
-        title="NGO Verification Rejected",
-        body=f"Your NGO verification request for '{ngo.name}' was rejected.",
-        data={"type": "ngo_verification_rejected", "ngo_id": ngo.id}
-    )
+    # Determine the NGO creator/owner to send notification
+    from app.models.ngo_member import NgoMember
+    from app.models.ngo_role import NgoRole
+    owner = db.query(NgoMember).join(NgoRole).filter(
+        NgoMember.ngo_id == ngo.id,
+        NgoRole.name == "owner"
+    ).first()
+
+    if owner:
+        # Send push notification to NGO creator
+        notification_service.send_push_notification(
+            db=db,
+            user_id=owner.user_id,
+            title="NGO Verification Rejected",
+            body=f"Your NGO verification request for '{ngo.name}' was rejected.",
+            data={"type": "ngo_verification_rejected", "ngo_id": ngo.id}
+        )
 
     return {"status": "success", "ngo_id": ngo.id, "verification_status": ngo.verification_status}

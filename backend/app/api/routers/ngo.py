@@ -21,7 +21,7 @@ def create_ngo(
     if existing_ngo:
         raise HTTPException(status_code=400, detail="NGO with this slug already exists.")
 
-    ngo = ngo_service.create_ngo(db, ngo_in)
+    ngo = ngo_service.create_ngo(db, ngo_in, creator_user_id=current_user.id)
     ngo_member_service.add_owner(db, current_user.id, ngo.id)
     return ngo
 

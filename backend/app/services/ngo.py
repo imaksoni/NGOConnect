@@ -16,10 +16,20 @@ class NgoService:
     def list_discoverable(self, db: Session) -> List[Ngo]:
         return ngo_repo.list_discoverable(db)
 
-    def create_ngo(self, db: Session, ngo_in: NgoCreate) -> Ngo:
+    def create_ngo(self, db: Session, ngo_in: NgoCreate, creator_user_id: Optional[str] = None) -> Ngo:
         ngo_id = str(uuid.uuid4())
         invite_code = secrets.token_urlsafe(8)
-        return ngo_repo.create(db, obj_in=ngo_in, id=ngo_id, invite_code=invite_code)
+        ngo = ngo_repo.create(db, obj_in=ngo_in, id=ngo_id, invite_code=invite_code)
+
+        from app.core.analytics import analytics_service
+        analytics_service.log_event(
+            event_name="ngo_created",
+            actor_user_id=creator_user_id,
+            entity_type="ngo",
+            entity_id=ngo.id
+        )
+
+        return ngo
 
     def update_ngo(self, db: Session, db_obj: Ngo, ngo_in: NgoUpdate) -> Ngo:
         return ngo_repo.update(db, db_obj=db_obj, obj_in=ngo_in)
