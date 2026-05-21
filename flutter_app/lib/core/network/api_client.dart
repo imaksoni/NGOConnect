@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../features/auth/data/repositories/token_repository.dart';
 import '../../features/auth/data/repositories/auth_repository.dart';
+import '../logger/app_logger.dart';
 
 class ApiClient {
   late final Dio _dio;
@@ -32,6 +33,18 @@ class ApiClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
+          AppLogger.error(
+            'API Error: ${e.message}',
+            error: e,
+            stackTrace: e.stackTrace,
+            data: {
+              'path': e.requestOptions.path,
+              'method': e.requestOptions.method,
+              'statusCode': e.response?.statusCode,
+              'headers': e.requestOptions.headers,
+            },
+          );
+
           if (e.response?.statusCode == 401 && _authRepository != null) {
             // Check if request was already a refresh attempt to avoid infinite loops
             if (e.requestOptions.path != '/auth/refresh') {

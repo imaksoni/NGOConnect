@@ -32,6 +32,14 @@ def register(
             detail="The user with this username already exists in the system.",
         )
     user = user_repository.create(db, user_in=user_in)
+    from app.core.analytics import analytics_service
+    analytics_service.log_event(
+        event_name="user_registered",
+        actor_user_id=user.id,
+        entity_type="user",
+        entity_id=user.id,
+        metadata={"method": "email"}
+    )
     return user
 
 from fastapi.security import OAuth2PasswordRequestForm
@@ -62,6 +70,14 @@ def login_with_google(
         # Create user
         user_in = UserCreate(email=email, full_name=name)
         user = user_repository.create(db, user_in=user_in)
+        from app.core.analytics import analytics_service
+        analytics_service.log_event(
+            event_name="user_registered",
+            actor_user_id=user.id,
+            entity_type="user",
+            entity_id=user.id,
+            metadata={"method": "google"}
+        )
 
     # Link auth provider if not linked
     auth_provider = auth_provider_repository.get_by_provider_id(db, provider="google", provider_user_id=google_user_id)

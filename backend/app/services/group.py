@@ -67,6 +67,16 @@ class GroupService:
         group = group_repo.create(db, obj_in, ngo_id, user_id)
         # Add creator as group_admin
         group_member_service.add_member(db, user_id, group.id, "group_admin")
+
+        from app.core.analytics import analytics_service
+        analytics_service.log_event(
+            event_name="group_created",
+            actor_user_id=user_id,
+            entity_type="group",
+            entity_id=group.id,
+            metadata={"ngo_id": ngo_id}
+        )
+
         return group
 
     def update_group(self, db: Session, db_obj: Group, obj_in: GroupUpdate) -> Group:
@@ -96,7 +106,16 @@ class GroupJoinRequestService:
 
         # Note: Depending on rules, you might allow re-requesting if rejected, or disallow it. We'll allow if not pending.
 
-        return group_join_request_repo.create(db, user_id=user_id, group_id=group_id)
+        req = group_join_request_repo.create(db, user_id=user_id, group_id=group_id)
+        from app.core.analytics import analytics_service
+        analytics_service.log_event(
+            event_name="join_request_submitted",
+            actor_user_id=user_id,
+            entity_type="group_join_request",
+            entity_id=req.id,
+            metadata={"group_id": group_id}
+        )
+        return req
 
     def get_requests_for_group(self, db: Session, group_id: str, status: Optional[str] = None) -> List[GroupJoinRequest]:
         return group_join_request_repo.get_all_for_group(db, group_id, status)
@@ -136,6 +155,15 @@ class GroupJoinRequestService:
 
         db.commit()
         db.refresh(db_obj)
+
+        from app.core.analytics import analytics_service
+        analytics_service.log_event(
+            event_name="join_request_approved",
+            actor_user_id=reviewer_id,
+            entity_type="group_join_request",
+            entity_id=db_obj.id,
+            metadata={"group_id": db_obj.group_id, "approved_user_id": db_obj.user_id}
+        )
 
         # Trigger push notification
         group = db.query(Group).filter(Group.id == db_obj.group_id).first()

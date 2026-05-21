@@ -40,9 +40,9 @@ def test_discover_returns_only_public_verified(client: TestClient, db: Session, 
     from app.services.ngo import ngo_service
     from app.schemas.ngo import NgoCreate
 
-    ngo1 = ngo_service.create_ngo(db, NgoCreate(name="NGO 1", slug="ngo-1", visibility="public"))
-    ngo2 = ngo_service.create_ngo(db, NgoCreate(name="NGO 2", slug="ngo-2", visibility="private"))
-    ngo3 = ngo_service.create_ngo(db, NgoCreate(name="NGO 3", slug="ngo-3", visibility="public"))
+    ngo1 = ngo_service.create_ngo(db, NgoCreate(name="NGO 1", slug="ngo-1", visibility="public"), creator_user_id="test-user")
+    ngo2 = ngo_service.create_ngo(db, NgoCreate(name="NGO 2", slug="ngo-2", visibility="private"), creator_user_id="test-user")
+    ngo3 = ngo_service.create_ngo(db, NgoCreate(name="NGO 3", slug="ngo-3", visibility="public"), creator_user_id="test-user")
 
     # Set verification statuses
     ngo1.verification_status = NgoVerificationStatus.verified
@@ -62,7 +62,7 @@ def test_get_ngo_by_slug(client: TestClient, db: Session, normal_user_token_head
     from app.services.ngo import ngo_service
     from app.schemas.ngo import NgoCreate
 
-    ngo = ngo_service.create_ngo(db, NgoCreate(name="Find Me", slug="find-me", visibility="public"))
+    ngo = ngo_service.create_ngo(db, NgoCreate(name="Find Me", slug="find-me", visibility="public"), creator_user_id="test-user")
 
     response = client.get(f"/ngos/slug/find-me")
     assert response.status_code == 200

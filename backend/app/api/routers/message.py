@@ -87,7 +87,16 @@ def upload_attachment(
         file_size=file.size or 0,
         storage_key=storage_key
     )
-    message_service.create_attachment(db, attachment_in, message.id, current_user.id)
+    attachment = message_service.create_attachment(db, attachment_in, message.id, current_user.id)
+
+    from app.core.analytics import analytics_service
+    analytics_service.log_event(
+        event_name="attachment_uploaded",
+        actor_user_id=current_user.id,
+        entity_type="attachment",
+        entity_id=attachment.id,
+        metadata={"channel_id": channel_id}
+    )
 
     updated_message = message_service.get_message(db, message.id)
     background_tasks.add_task(broadcast_message, channel_id, updated_message)

@@ -67,15 +67,26 @@ async def websocket_endpoint(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Not authorized to access this channel")
         return
 
+    from app.core.logger import request_id_ctx_var
+    import uuid
+
+    # Establish a correlation context for the WebSocket connection lifecycle
+    ws_request_id = websocket.headers.get("X-Request-ID") or websocket.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    token_ctx = request_id_ctx_var.set(ws_request_id)
+
     await manager.connect(websocket, channel_id)
+    logger.info("WebSocket connected", extra={"channel_id": channel_id, "user_id": user.id})
     try:
         while True:
             # We don't currently support sending messages directly through the socket,
             # only receiving broadcasts of REST-created messages.
             # But we need to receive to keep connection open and handle disconnects.
             data = await websocket.receive_text()
-    except WebSocketDisconnect:
+    except WebSocketDisconnect as e:
+        logger.info(f"WebSocket disconnected", extra={"channel_id": channel_id, "user_id": user.id, "close_code": e.code})
         manager.disconnect(websocket, channel_id)
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error: {e}", exc_info=True, extra={"channel_id": channel_id, "user_id": user.id})
         manager.disconnect(websocket, channel_id)
+    finally:
+        request_id_ctx_var.reset(token_ctx)

@@ -13,7 +13,10 @@ class NgoRepository {
   }
 
   Future<List<NgoModel>> searchNgos(String query) async {
-    final response = await _apiClient.dio.get('/search/ngos', queryParameters: {'q': query});
+    final response = await _apiClient.dio.get(
+      '/search/ngos',
+      queryParameters: {'q': query},
+    );
     final List<dynamic> data = response.data;
     return data.map((json) => NgoModel.fromJson(json)).toList();
   }
